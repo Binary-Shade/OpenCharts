@@ -40,6 +40,8 @@ import { useEffect, useRef, useState } from "react";
 import { Redo2, Undo2 } from "lucide-react";
 import type { ChartType } from "./chartTypes.ts";
 import { IntervalMenu } from "./toolbar/IntervalMenu.tsx";
+import { FavoriteIntervalRow } from "./toolbar/FavoriteIntervalRow.tsx";
+import { useIntervalFavorites } from "./toolbar/useIntervalFavorites.ts";
 import { ChartTypeMenu } from "./toolbar/ChartTypeMenu.tsx";
 import { IndicatorsMenu } from "./toolbar/IndicatorsMenu.tsx";
 import { ToolbarDivider } from "./toolbar/primitives.tsx";
@@ -152,6 +154,7 @@ export function ChartToolbar({
 }: ChartToolbarProps) {
   const [showSymbolSearch, setShowSymbolSearch] = useState(false);
   const [symbolFilter, setSymbolFilter] = useState("");
+  const { favorites, toggleFavorite } = useIntervalFavorites();
 
   const filteredSymbols = symbols.filter(
     (s) =>
@@ -312,7 +315,19 @@ export function ChartToolbar({
       {/* Interval + chart type — TradingView grouped menus. Timeframe is
           locked to 1m while a replay session is active. */}
       <div className="flex items-center gap-0.5 ml-1 shrink-0">
-        <IntervalMenu timeframe={timeframe} onTimeframeChange={onTimeframeChange} disabled={isReplaying} />
+        <FavoriteIntervalRow
+          favorites={favorites}
+          timeframe={timeframe}
+          onTimeframeChange={onTimeframeChange}
+          disabled={isReplaying}
+        />
+        <IntervalMenu
+          timeframe={timeframe}
+          onTimeframeChange={onTimeframeChange}
+          favorites={favorites}
+          onToggleFavorite={toggleFavorite}
+          disabled={isReplaying}
+        />
         <ChartTypeMenu chartType={chartType} onChartTypeChange={onChartTypeChange} />
       </div>
 

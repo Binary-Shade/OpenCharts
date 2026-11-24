@@ -1,7 +1,4 @@
-import { useState } from "react";
-import { safeStorage } from "../../../lib/safe-storage.ts";
-import { TIMEFRAMES, type Timeframe } from "../constants.ts";
-import { cn } from "../../../lib/utils.ts";
+import type { Timeframe } from "../constants.ts";
 import { INTERVAL_GROUPS } from "../chartTypes.ts";
 import {
   MenuDivider,
@@ -10,21 +7,12 @@ import {
   ToolbarMenu,
 } from "./primitives.tsx";
 
-const FAVORITES_KEY = "oc_interval_favorites";
-
-function readFavorites(): string[] {
-  try {
-    const raw = safeStorage.getItem(FAVORITES_KEY);
-    const parsed = raw ? (JSON.parse(raw) as unknown) : [];
-    return Array.isArray(parsed) ? parsed.filter((tf): tf is string => typeof tf === "string") : [];
-  } catch {
-    return [];
-  }
-}
-
 interface IntervalMenuProps {
   timeframe: Timeframe;
   onTimeframeChange: (tf: Timeframe) => void;
+  /** Owned by the toolbar so the flat quick-pick row stays in sync. */
+  favorites: Timeframe[];
+  onToggleFavorite: (tf: Timeframe) => void;
   disabled?: boolean;
 }
 
@@ -32,17 +20,13 @@ interface IntervalMenuProps {
  * Interval dropdown grouped like TradingView's (minutes / hours / days),
  * with per-interval favorites and a selected check.
  */
-export function IntervalMenu({ timeframe, onTimeframeChange, disabled }: IntervalMenuProps) {
-  const [favorites, setFavorites] = useState<string[]>(readFavorites);
-
-  const toggleFavorite = (tf: string) => {
-    setFavorites((prev) => {
-      const next = prev.includes(tf) ? prev.filter((f) => f !== tf) : [...prev, tf];
-      safeStorage.setItem(FAVORITES_KEY, JSON.stringify(next));
-      return next;
-    });
-  };
-
+export function IntervalMenu({
+  timeframe,
+  onTimeframeChange,
+  favorites,
+  onToggleFavorite,
+  disabled,
+}: IntervalMenuProps) {
   const current = INTERVAL_GROUPS.flatMap((g) => g.items).find((i) => i.tf === timeframe);
 
   return (
@@ -66,10 +50,10 @@ export function IntervalMenu({ timeframe, onTimeframeChange, disabled }: Interva
                     selected={tf === timeframe}
                     starred
                     onPick={() => {
-                      if (TIMEFRAMES.includes(tf as Timeframe)) onTimeframeChange(tf as Timeframe);
+                      onTimeframeChange(tf);
                       close();
                     }}
-                    onToggleStar={() => toggleFavorite(tf)}
+                    onToggleStar={() => onToggleFavorite(tf)}
                   />
                 );
               })}
@@ -85,20 +69,18 @@ export function IntervalMenu({ timeframe, onTimeframeChange, disabled }: Interva
                   key={item.tf}
                   label={item.label}
                   selected={item.tf === timeframe}
-                  starred={favorites.includes(item.tf)}
+                  starred={favorites.includes(item.tf as Timeframe)}
                   onPick={() => {
-                    if (TIMEFRAMES.includes(item.tf as Timeframe)) {
-                      onTimeframeChange(item.tf as Timeframe);
-                    }
+                    onTimeframeChange(item.tf as Timeframe);
                     close();
                   }}
-                  onToggleStar={() => toggleFavorite(item.tf)}
+                  onToggleStar={() => onToggleFavorite(item.tf as Timeframe)}
                 />
               ))}
             </div>
           ))}
-          <div className={cn("px-3 pb-1.5 pt-1 text-[10px] text-muted-foreground/60")}>
-            Timeframe is locked during replay
+          <div className="px-3 pb-1.5 pt-1 text-[10px] text-muted-foreground/60">
+            Star an interval to pin it to the toolbar
           </div>
         </>
       )}
