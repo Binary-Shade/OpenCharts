@@ -65,6 +65,7 @@ export default defineConfig({
         "drawing-engine": path.resolve(__dirname, "src/drawing-engine.ts"),
         indicators: path.resolve(__dirname, "src/indicators.ts"),
         "market-schema": path.resolve(__dirname, "src/market-schema.ts"),
+        "saas-core": path.resolve(__dirname, "src/saas-core.ts"),
       },
       formats: ["es"],
     },

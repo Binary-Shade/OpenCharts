@@ -63,6 +63,10 @@
       "types": "./dist-lib/market-schema.d.ts",
       "import": "./dist-lib/market-schema.js"
     },
+    "./saas-core": {
+      "types": "./dist-lib/saas-core.d.ts",
+      "import": "./dist-lib/saas-core.js"
+    },
     "./style.css": "./dist-lib/style.css",
     "./package.json": "./package.json"
   },

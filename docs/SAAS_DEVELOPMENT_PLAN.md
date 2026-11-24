@@ -417,11 +417,13 @@ known vulnerabilities.
 
 - Add the Next.js application shell.
 - Implement authentication, users, and organizations.
-- Add Postgres persistence for layouts, drawings, watchlists, journals, and templates.
-- Implement autosave, revisions, conflict handling, and device synchronization.
-- Add entitlements and feature flags.
+- [x] Add the initial tenant-safe Postgres schema for users, organizations, workspaces, chart documents, watchlists, subscriptions, and audit events.
+- [x] Add optimistic revision contracts and a compare-and-swap chart-document write path.
+- [x] Add provider-neutral subscription entitlements and plan limits.
+- [ ] Connect authenticated API routes to the Postgres schema and provision users/organizations.
+- [ ] Move drawings, layouts, watchlists, journals, and templates from local storage to revisioned cloud persistence.
 - Add basic subscription billing.
-- Add audit logging, application metrics, and tracing.
+- [ ] Emit audit events from every privileged mutation; add application metrics and tracing.
 
 ### Phase C — Product MVP (8–12 weeks)
 
