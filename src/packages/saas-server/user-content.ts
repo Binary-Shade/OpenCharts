@@ -179,6 +179,27 @@ export function createPostgresWorkspaceLayoutRepository(pool: Pool): WorkspaceLa
   };
 }
 
+/**
+ * Answers "is this principal a member of this organization" through the
+ * tenant pool, so row-level security is the enforcement point.
+ */
+export interface MembershipRepository {
+  isMember(principal: AuthenticatedPrincipal, organizationId: string): Promise<boolean>;
+}
+
+export function createPostgresMembershipRepository(pool: Pool): MembershipRepository {
+  return {
+    isMember: (principal, organizationId) =>
+      withTenantTransaction(pool, principal, async (client) => {
+        const result = await client.query<{ ok: number }>(
+          "select 1 as ok from public.organizations where public_id = $1::uuid limit 1",
+          [organizationId],
+        );
+        return result.rows.length > 0;
+      }),
+  };
+}
+
 export interface WatchlistRef {
   id: string;
   organizationId: string;
