@@ -7,7 +7,6 @@ import {
   ArrowUpRight,
   BarChart3,
   CalendarDays,
-  ChevronDown,
   Circle,
   Clock,
   Crosshair,
@@ -25,7 +24,6 @@ import {
   Pencil,
   Repeat,
   Ruler,
-  Search,
   SlidersHorizontal,
   Spline,
   Square,
@@ -34,14 +32,13 @@ import {
   TrendingUp,
   Triangle,
   Type,
-  X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
 import { Redo2, Undo2 } from "lucide-react";
 import type { ChartType } from "./chartTypes.ts";
 import { IntervalMenu } from "./toolbar/IntervalMenu.tsx";
+import { SymbolSearch } from "./toolbar/SymbolSearch.tsx";
 import { FavoriteIntervalRow } from "./toolbar/FavoriteIntervalRow.tsx";
-import { useIntervalFavorites } from "./toolbar/useIntervalFavorites.ts";
 import { ChartTypeMenu } from "./toolbar/ChartTypeMenu.tsx";
 import { FavoriteChartTypeRow } from "./toolbar/FavoriteChartTypeRow.tsx";
 import { useChartTypeFavorites } from "./toolbar/useChartTypeFavorites.ts";
@@ -62,6 +59,8 @@ import { ReplayHUD } from "./ReplayHUD.tsx";
 import { getPipDigits } from "./utils.ts";
 
 export interface ChartToolbarProps {
+  intervalFavorites?: Timeframe[];
+  onToggleIntervalFavorite?: (tf: Timeframe) => void;
   chartType: ChartType;
   onChartTypeChange: (type: ChartType) => void;
   onUndo?: () => void;
@@ -120,6 +119,8 @@ export interface ChartToolbarProps {
 }
 
 export function ChartToolbar({
+  intervalFavorites = [],
+  onToggleIntervalFavorite,
   chartType,
   onChartTypeChange,
   onUndo,
@@ -154,19 +155,12 @@ export function ChartToolbar({
   stayInDrawingMode = false,
   onToggleStayInDrawingMode,
 }: ChartToolbarProps) {
-  const [showSymbolSearch, setShowSymbolSearch] = useState(false);
-  const [symbolFilter, setSymbolFilter] = useState("");
-  const { favorites, toggleFavorite } = useIntervalFavorites();
   const {
     favorites: chartTypeFavorites,
     toggleFavorite: toggleChartTypeFavorite,
   } = useChartTypeFavorites();
 
-  const filteredSymbols = symbols.filter(
-    (s) =>
-      s.name.toLowerCase().includes(symbolFilter.toLowerCase()) ||
-      (s.category || "").toLowerCase().includes(symbolFilter.toLowerCase()),
-  );
+
 
   // Spread in pips/points: (ask - bid) / pipSize. Previously this multiplied
   // by contractSize which produced a meaningless quote-currency-per-lot number
@@ -181,115 +175,13 @@ export function ChartToolbar({
       aria-label="Chart toolbar"
       className="flex items-center gap-1 px-2 py-1 border-b border-border bg-card text-xs shrink-0 overflow-x-auto md:overflow-visible flex-nowrap md:flex-wrap no-scrollbar"
     >
-      {/* Symbol Selector — TradingView style */}
-      <div className="relative shrink-0">
-        <button
-          onClick={() => setShowSymbolSearch((v) => !v)}
-          className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-md hover:bg-secondary font-bold text-sm tracking-tight"
-        >
-          {selectedSymbol}
-          <ChevronDown className="h-3 w-3 opacity-60" />
-        </button>
-
-        {showSymbolSearch && (
-          <>
-            {/* Mobile: full-screen modal (avoids parent overflow clipping) */}
-            <div
-              className="md:hidden fixed inset-0 z-[100] bg-black/60"
-              onClick={() => setShowSymbolSearch(false)}
-            >
-              <div
-                className="fixed inset-x-0 top-0 bg-card border-b border-border shadow-2xl flex flex-col max-h-[85vh]"
-                onClick={(e) => e.stopPropagation()}
-              >
-                <div className="flex items-center gap-2 p-3 border-b border-border">
-                  <Search className="h-4 w-4 text-muted-foreground shrink-0" />
-                  <input
-                    autoFocus
-                    placeholder="Search symbols..."
-                    value={symbolFilter}
-                    onChange={(e) => setSymbolFilter(e.target.value)}
-                    className="flex-1 bg-transparent text-base outline-none"
-                  />
-                  <button
-                    onClick={() => {
-                      setShowSymbolSearch(false);
-                      setSymbolFilter("");
-                    }}
-                    className="p-1.5 rounded-md hover:bg-secondary"
-                  >
-                    <X className="h-4 w-4" />
-                  </button>
-                </div>
-                <div className="flex-1 overflow-y-auto overscroll-contain">
-                  {filteredSymbols.length === 0 ? (
-                    <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                      No symbols match &ldquo;{symbolFilter}&rdquo;
-                    </div>
-                  ) : (
-                    filteredSymbols.map((s) => (
-                      <button
-                        key={s.id || s.name}
-                        onClick={() => {
-                          onSymbolChange(s.name);
-                          setShowSymbolSearch(false);
-                          setSymbolFilter("");
-                        }}
-                        className={cn(
-                          "w-full flex items-center justify-between px-4 py-3 text-base hover:bg-secondary border-b border-border/40 active:bg-secondary",
-                          s.name === selectedSymbol && "bg-secondary",
-                        )}
-                      >
-                        <div className="flex flex-col items-start">
-                          <span className="font-semibold">{s.name}</span>
-                          {s.displayName && s.displayName !== s.name && (
-                            <span className="text-xs text-muted-foreground">{s.displayName}</span>
-                          )}
-                        </div>
-                        <span className="text-muted-foreground text-xs uppercase tracking-wide">
-                          {s.category || s.assetClass}
-                        </span>
-                      </button>
-                    ))
-                  )}
-                </div>
-              </div>
-            </div>
-
-            {/* Desktop: absolute dropdown */}
-            <div className="hidden md:block absolute top-full left-0 z-50 mt-1 w-64 bg-card border border-border rounded-lg shadow-xl overflow-hidden">
-              <input
-                autoFocus
-                placeholder="Search symbols..."
-                value={symbolFilter}
-                onChange={(e) => setSymbolFilter(e.target.value)}
-                className="w-full px-3 py-2 text-sm border-b border-border bg-card"
-              />
-              <div className="max-h-60 overflow-y-auto">
-                {filteredSymbols.map((s) => (
-                  <button
-                    key={s.id || s.name}
-                    onClick={() => {
-                      onSymbolChange(s.name);
-                      setShowSymbolSearch(false);
-                      setSymbolFilter("");
-                    }}
-                    className={cn(
-                      "w-full flex items-center justify-between px-3 py-1.5 text-sm hover:bg-secondary",
-                      s.name === selectedSymbol && "bg-secondary",
-                    )}
-                  >
-                    <span className="font-medium">{s.name}</span>
-                    {s.displayName && s.displayName !== s.name && (
-                      <span className="text-xs text-muted-foreground ml-2 mr-auto">{s.displayName}</span>
-                    )}
-                    <span className="text-muted-foreground text-xs">{s.category}</span>
-                  </button>
-                ))}
-              </div>
-            </div>
-          </>
-        )}
+      {/* Symbol Selector — shared with the chart legend */}
+      <div className="shrink-0">
+        <SymbolSearch
+          symbols={symbols}
+          selectedSymbol={selectedSymbol}
+          onSymbolChange={onSymbolChange}
+        />
       </div>
 
       {/* Live Price — bid / ask badges like TradingView */}
@@ -322,7 +214,7 @@ export function ChartToolbar({
           locked to 1m while a replay session is active. */}
       <div className="flex items-center gap-0.5 ml-1 shrink-0">
         <FavoriteIntervalRow
-          favorites={favorites}
+          favorites={intervalFavorites}
           timeframe={timeframe}
           onTimeframeChange={onTimeframeChange}
           disabled={isReplaying}
@@ -330,8 +222,8 @@ export function ChartToolbar({
         <IntervalMenu
           timeframe={timeframe}
           onTimeframeChange={onTimeframeChange}
-          favorites={favorites}
-          onToggleFavorite={toggleFavorite}
+          favorites={intervalFavorites}
+          onToggleFavorite={onToggleIntervalFavorite ?? (() => {})}
           disabled={isReplaying}
         />
         <ChartTypeMenu

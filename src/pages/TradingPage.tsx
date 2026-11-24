@@ -6,6 +6,7 @@ import type { IndicatorType } from "../packages/indicators/index.ts";
 import { safeStorage } from "../lib/safe-storage.ts";
 import type { PlaceOrderInput } from "../services/schemas.ts";
 import { updateChartPreferences } from "../hooks/useChartPreferences.ts";
+import { useIntervalFavorites } from "./trading/toolbar/useIntervalFavorites.ts";
 import { useTradingStore } from "../services/store.tsx";
 import { useTerminal } from "../terminal/use-terminal.ts";
 import { BottomPanel } from "./trading/BottomPanel.tsx";
@@ -156,6 +157,8 @@ export function TradingPage() {
     [activeIndicators, toggleIndicator],
   );
   const ticks = useTradingStore((s) => s.ticks);
+  const { favorites: intervalFavorites, toggleFavorite: toggleIntervalFavorite } =
+    useIntervalFavorites();
 
   return (
 
@@ -172,6 +175,8 @@ export function TradingPage() {
 
       {/* ── Top Toolbar ──────────────────────────────────── */}
       <ChartToolbar
+        intervalFavorites={intervalFavorites}
+        onToggleIntervalFavorite={toggleIntervalFavorite}
         selectedSymbol={selectedSymbol}
         symbols={symbols}
         onSymbolChange={setSelectedSymbol}
@@ -221,6 +226,11 @@ export function TradingPage() {
               candles={replayCandles ?? candles ?? []}
               selectedSymbol={selectedSymbol}
               timeframe={replayCandles ? "1m" : timeframe}
+              onTimeframeChange={replayCandles ? undefined : handleTimeframeChange}
+              symbols={symbols}
+              onToggleIndicator={toggleIndicator}
+              intervalFavorites={intervalFavorites}
+              onToggleIntervalFavorite={toggleIntervalFavorite}
               isDark={isDark}
               activeIndicators={activeIndicators}
               drawingTool={drawingTool}

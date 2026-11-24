@@ -16,7 +16,22 @@ import {
   SeriesType,
   type Time,
 } from "lightweight-charts";
-import { Clock, ListTree } from "lucide-react";
+import {
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  ChevronsRight,
+  Clock,
+  Eye,
+  EyeOff,
+  ListTree,
+  X,
+  ZoomIn,
+  ZoomOut,
+} from "lucide-react";
+import { INDICATOR_REGISTRY } from "../../packages/indicators/index.ts";
+import { SymbolSearch } from "./toolbar/SymbolSearch.tsx";
+import { IntervalMenu } from "./toolbar/IntervalMenu.tsx";
 import {
   chartSeriesType,
   isCandleFamily,
@@ -216,8 +231,13 @@ export interface ChartPanelProps {
   candles: Candle[];
   selectedSymbol: string;
   timeframe: Timeframe;
+  onTimeframeChange?: (tf: Timeframe) => void;
   isDark: boolean;
   activeIndicators: IndicatorType[];
+  symbols?: Array<{ id?: string; name: string; displayName?: string | null; category?: string; assetClass?: string }>;
+  onToggleIndicator?: (type: IndicatorType) => void;
+  intervalFavorites?: Timeframe[];
+  onToggleIntervalFavorite?: (tf: Timeframe) => void;
   drawingTool: DrawingTool;
   drawings: DrawingLine[];
   onAddDrawing: (d: DrawingLine) => void;
@@ -1026,34 +1046,85 @@ function BidAskRow({ tick, pipDigits }: { tick: TickData; pipDigits: number }) {
   );
 }
 
-// Symbol / timeframe / OHLCV / countdown header in the chart's top-left corner.
-// Extracted so the visibility branching doesn't inflate ChartPanel's CC.
+// Interactive TradingView-style legend: symbol search, interval menu, market
+// status, OHLCV row, per-indicator rows with hide/remove, and a navigation
+// toolbar. Extracted so the visibility branching doesn't inflate ChartPanel.
 function ChartLegendHeader({
   selectedSymbol,
   timeframe,
+  onTimeframeChange,
+  intervalFavorites,
+  onToggleIntervalFavorite,
+  symbols,
   legend,
   countdown,
   tick,
   pipDigits,
   showOhlcLegend,
   showCountdown,
+  symbolCategory,
+  activeIndicators,
+  hiddenIndicators,
+  onToggleIndicatorHidden,
+  onToggleIndicator,
+  collapsed,
+  onToggleCollapsed,
 }: {
   selectedSymbol: string;
   timeframe: Timeframe;
+  onTimeframeChange: (tf: Timeframe) => void;
+  intervalFavorites: Timeframe[];
+  onToggleIntervalFavorite?: (tf: Timeframe) => void;
+  symbols: Array<{ id?: string; name: string; displayName?: string | null; category?: string; assetClass?: string }>;
   legend: OhlcvLegend | null;
   countdown: string;
   tick?: TickData;
   pipDigits: number;
   showOhlcLegend: boolean;
   showCountdown: boolean;
+  symbolCategory?: string;
+  activeIndicators: IndicatorType[];
+  hiddenIndicators: IndicatorType[];
+  onToggleIndicatorHidden: (type: IndicatorType) => void;
+  onToggleIndicator?: (type: IndicatorType) => void;
+  collapsed: boolean;
+  onToggleCollapsed: () => void;
 }) {
+  const upper = (symbolCategory || "").toUpperCase();
+  const marketLabel =
+    upper === "CRYPTO"
+      ? "Market open · 24/7"
+      : tick
+        ? "Market open · live"
+        : "Waiting for data";
+
   return (
-    <div className="absolute top-2 left-3 z-10 pointer-events-none select-none">
-      <div className="flex items-center gap-2 text-[11px] font-mono leading-none mb-1">
-        <span className="text-foreground font-bold text-[13px] tracking-tight">
-          {selectedSymbol}
+    <div className="absolute top-2 left-3 z-10 select-none flex flex-col items-start gap-1 max-w-[calc(100%-6rem)]">
+      <div
+        role="toolbar"
+        aria-label="Chart legend"
+        className="flex items-center gap-1.5 text-[11px] font-mono leading-none bg-background/40 backdrop-blur-[2px] rounded-md px-1 py-0.5"
+      >
+        <SymbolSearch
+          symbols={symbols}
+          selectedSymbol={selectedSymbol}
+          onSymbolChange={() => {}}
+          compact
+          align="left"
+        />
+        <span className="text-muted-foreground/50">·</span>
+        <IntervalMenu
+          timeframe={timeframe}
+          onTimeframeChange={onTimeframeChange ?? (() => {})}
+          favorites={intervalFavorites}
+          onToggleFavorite={onToggleIntervalFavorite ?? (() => {})}
+        />
+        <span
+          className="hidden md:inline text-[10px] text-muted-foreground/70 px-1.5 py-0.5 rounded bg-secondary/60"
+          title={marketLabel}
+        >
+          {marketLabel}
         </span>
-        <span className="text-muted-foreground font-medium">{timeframe}</span>
         {legend && showOhlcLegend && <OhlcvLegendRow legend={legend} pipDigits={pipDigits} />}
         {countdown && showCountdown && (
           <span className="text-muted-foreground/60 flex items-center gap-0.5">
@@ -1061,9 +1132,110 @@ function ChartLegendHeader({
             {countdown}
           </span>
         )}
+        <button
+          type="button"
+          aria-label={collapsed ? "Show indicator legend" : "Hide indicator legend"}
+          title={collapsed ? "Show indicator legend" : "Hide indicator legend"}
+          onClick={onToggleCollapsed}
+          className="p-0.5 rounded text-muted-foreground/60 hover:bg-secondary/70 hover:text-foreground"
+        >
+          <ChevronDown className={cn("h-3 w-3 transition-transform", collapsed && "rotate-180")} />
+        </button>
       </div>
-      {/* Secondary info row: Bid / Ask / Spread */}
+
       {tick && <BidAskRow tick={tick} pipDigits={pipDigits} />}
+
+      {!collapsed && activeIndicators.length > 0 && (
+        <div className="flex flex-col items-start gap-0.5 bg-background/40 backdrop-blur-[2px] rounded-md px-1 py-0.5">
+          {activeIndicators.map((type) => {
+            const meta = INDICATOR_REGISTRY.find((ind) => ind.type === type);
+            if (!meta) return null;
+            const isHidden = hiddenIndicators.includes(type);
+            return (
+              <div
+                key={type}
+                className="flex items-center gap-1.5 text-[10px] font-mono leading-none px-0.5"
+              >
+                <span
+                  className="w-1.5 h-1.5 rounded-full shrink-0"
+                  style={{ backgroundColor: meta.color, opacity: isHidden ? 0.3 : 1 }}
+                />
+                <span className={cn("font-medium", isHidden && "text-muted-foreground/50 line-through")}>
+                  {meta.label}
+                </span>
+                <span className="text-muted-foreground/50 hidden md:inline">
+                  {meta.pane === "overlay" ? "overlay" : "pane"}
+                </span>
+                <button
+                  type="button"
+                  aria-label={isHidden ? `Show ${meta.label}` : `Hide ${meta.label}`}
+                  title={isHidden ? "Show" : "Hide"}
+                  onClick={() => onToggleIndicatorHidden(type)}
+                  className="p-0.5 rounded text-muted-foreground/60 hover:bg-secondary/70 hover:text-foreground"
+                >
+                  {isHidden ? <Eye className="h-2.5 w-2.5" /> : <EyeOff className="h-2.5 w-2.5" />}
+                </button>
+                {onToggleIndicator && (
+                  <button
+                    type="button"
+                    aria-label={`Remove ${meta.label}`}
+                    title="Remove"
+                    onClick={() => onToggleIndicator(type)}
+                    className="p-0.5 rounded text-muted-foreground/60 hover:bg-secondary/70 hover:text-foreground"
+                  >
+                    <X className="h-2.5 w-2.5" />
+                  </button>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+    </div>
+  );
+}
+
+// Zoom/scroll controls, bottom-right like TradingView's — kept out of the
+// top-left legend because the floating drawing toolbar owns that corner.
+function ChartNavToolbar({
+  onZoomIn,
+  onZoomOut,
+  onScrollLeft,
+  onScrollRight,
+  onScrollToRealTime,
+}: {
+  onZoomIn: () => void;
+  onZoomOut: () => void;
+  onScrollLeft: () => void;
+  onScrollRight: () => void;
+  onScrollToRealTime: () => void;
+}) {
+  const items = [
+    { label: "Zoom in", icon: ZoomIn, action: onZoomIn },
+    { label: "Zoom out", icon: ZoomOut, action: onZoomOut },
+    { label: "Scroll to the left", icon: ChevronLeft, action: onScrollLeft },
+    { label: "Scroll to the right", icon: ChevronRight, action: onScrollRight },
+    { label: "Scroll to the most recent bar", icon: ChevronsRight, action: onScrollToRealTime },
+  ];
+  return (
+    <div
+      role="toolbar"
+      aria-label="Chart navigation"
+      className="absolute bottom-9 right-3 z-10 flex items-center gap-0.5 bg-background/60 backdrop-blur-[2px] border border-border/60 rounded-md px-0.5 py-0.5"
+    >
+      {items.map(({ label, icon: Icon, action }) => (
+        <button
+          key={label}
+          type="button"
+          aria-label={label}
+          title={label}
+          onClick={action}
+          className="p-1 rounded text-muted-foreground/70 hover:bg-secondary/70 hover:text-foreground"
+        >
+          <Icon className="h-3 w-3" />
+        </button>
+      ))}
     </div>
   );
 }
@@ -1178,6 +1350,11 @@ export function ChartPanel({
   timeframe,
   isDark,
   activeIndicators,
+  onTimeframeChange,
+  symbols = [],
+  onToggleIndicator,
+  intervalFavorites = [],
+  onToggleIntervalFavorite,
   drawingTool,
   drawings,
   onAddDrawing,
@@ -1255,6 +1432,19 @@ export function ChartPanel({
 
   // OHLCV legend state
   const [legend, setLegend] = useState<OhlcvLegend | null>(null);
+  // Indicator legend controls: hidden series stay computed but unpainted,
+  // and the whole rows block can collapse like TradingView's legend.
+  const [hiddenIndicators, setHiddenIndicators] = useState<IndicatorType[]>([]);
+  const [indicatorLegendCollapsed, setIndicatorLegendCollapsed] = useState(false);
+  const toggleIndicatorHidden = useCallback((type: IndicatorType) => {
+    setHiddenIndicators((prev) =>
+      prev.includes(type) ? prev.filter((t) => t !== type) : [...prev, type],
+    );
+  }, []);
+  const paintedIndicators = useMemo(
+    () => activeIndicators.filter((t) => !hiddenIndicators.includes(t)),
+    [activeIndicators, hiddenIndicators],
+  );
   // Candle countdown state. `countdownText` blanks it for timeframes that have
   // no meaningful countdown (1d, 1w) instead of the timer effect clearing state.
   const [countdown, setCountdown] = useState("");
@@ -1491,6 +1681,27 @@ export function ChartPanel({
     setChartMenu({ x: e.clientX, y: e.clientY, price });
   }, []);
 
+  // ── Legend navigation toolbar (zoom + scroll via the time scale) ──
+  const handleLegendZoomIn = useCallback(() => {
+    const ts = chartRef.current?.timeScale();
+    if (!ts) return;
+    ts.applyOptions({ barSpacing: Math.min((ts.options().barSpacing || 6) * 1.3, 120) });
+  }, []);
+  const handleLegendZoomOut = useCallback(() => {
+    const ts = chartRef.current?.timeScale();
+    if (!ts) return;
+    ts.applyOptions({ barSpacing: Math.max((ts.options().barSpacing || 6) / 1.3, 0.5) });
+  }, []);
+  const handleLegendScrollLeft = useCallback(() => {
+    chartRef.current?.timeScale().scrollToPosition(-120, false);
+  }, []);
+  const handleLegendScrollRight = useCallback(() => {
+    chartRef.current?.timeScale().scrollToPosition(120, false);
+  }, []);
+  const handleLegendScrollToRealTime = useCallback(() => {
+    chartRef.current?.timeScale().scrollToRealTime();
+  }, []);
+
   const handleResetView = useCallback(() => {
     const chart = chartRef.current;
     if (!chart) return;
@@ -1526,7 +1737,7 @@ export function ChartPanel({
     [onAddDrawing, pipDigits, timeframe, selectedSymbol],
   );
 
-  useIndicators(chartRef, candleSeriesRef, chartData, activeIndicators, isDark);
+  useIndicators(chartRef, candleSeriesRef, chartData, paintedIndicators, isDark);
 
   // ── Replay trade event markers ─────────────────────────────
   useEffect(() => {
@@ -2100,12 +2311,31 @@ export function ChartPanel({
       <ChartLegendHeader
         selectedSymbol={selectedSymbol}
         timeframe={timeframe}
+        onTimeframeChange={onTimeframeChange ?? (() => {})}
+        intervalFavorites={intervalFavorites}
+        onToggleIntervalFavorite={onToggleIntervalFavorite}
+        symbols={symbols}
         legend={legend}
         countdown={countdownText}
         tick={tick}
         pipDigits={pipDigits}
         showOhlcLegend={chartPrefs.showOhlcLegend}
         showCountdown={chartPrefs.showCountdown}
+        symbolCategory={symbolInfo?.category}
+        activeIndicators={activeIndicators}
+        hiddenIndicators={hiddenIndicators}
+        onToggleIndicatorHidden={toggleIndicatorHidden}
+        onToggleIndicator={onToggleIndicator}
+        collapsed={indicatorLegendCollapsed}
+        onToggleCollapsed={() => setIndicatorLegendCollapsed((v) => !v)}
+      />
+
+      <ChartNavToolbar
+        onZoomIn={handleLegendZoomIn}
+        onZoomOut={handleLegendZoomOut}
+        onScrollLeft={handleLegendScrollLeft}
+        onScrollRight={handleLegendScrollRight}
+        onScrollToRealTime={handleLegendScrollToRealTime}
       />
 
       {/* Drag-to-edit tooltip */}

@@ -511,7 +511,7 @@ styling. Nothing here copies TradingView assets, artwork, or text; only structur
 - [x] Interval menu: grouped list (minutes/hours/days & weeks), per-interval favorites, selected-state marker (custom intervals and tick/range groups land with engine support).
 - [x] Chart-type menu: grouped layout (bars & candles / line / overlays); Bars, Candles, Line, Line with markers, Area, Baseline render through a type-aware series factory (Hollow candles, Step line, Heikin Ashi need engine data transforms).
 - [ ] Indicators dialog: search box, filter categories, tab strip (Indicators/Strategies), alphabetical list, click-to-add; favorites star persisted to cloud documents.
-- [ ] Chart legend: inline symbol and interval editing buttons, exchange label, market-status readout, OHLC + change line, indicator legend rows with hide/settings/remove/value, per-pane navigation toolbar (zoom/scroll).
+- [x] Chart legend: inline symbol and interval editing buttons, market-status readout, OHLC + change line, indicator legend rows with hide/remove, legend collapse, and a zoom/scroll navigation toolbar (per-indicator live values and settings dialogs land with the indicator-inputs task).
 - [ ] Bottom toolbar: paired range+interval quick tabs (1D…All), "Go to date" (Alt+G), live UTC clock with timezone menu.
 - [ ] Right rail: vertical tab strip with the panels we already have (watchlist, alerts, object tree, data window) plus placeholder tabs for screeners and the script editor; resizable panel body.
 - [ ] Watchlist panel: header actions (add symbol, advanced view, settings), sortable columns, grouped sections.
