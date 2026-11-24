@@ -11,3 +11,11 @@ playwright-report
 test-results
 dist-lib
 *.tgz
+
+# Local agent tooling (skills, hooks, agent definitions)
+.agents/
+.codex/
+.github/agents/
+.github/hooks/
+.github/skills/
+skills-lock.json
