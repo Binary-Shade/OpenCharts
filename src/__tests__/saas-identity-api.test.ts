@@ -96,6 +96,7 @@ describe("organization handler", () => {
       name: "Alpha Desk!",
       slug: "alpha-desk",
       ownerId: "42",
+      ownerPublicId: "u-abc",
     });
   });
 

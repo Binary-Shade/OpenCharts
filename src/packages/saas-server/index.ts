@@ -6,3 +6,5 @@ export * from "./user-content.ts";
 export * from "./content-api.ts";
 export * from "./billing.ts";
 export * from "./billing-api.ts";
+export * from "./audit.ts";
+export * from "./observability.ts";

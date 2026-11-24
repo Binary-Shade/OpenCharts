@@ -1,6 +1,6 @@
-import type { AuthenticatedPrincipal } from "./postgres.ts";
 import type {
   AuthenticatedSubject,
+  ProvisionedUser,
   TenantProvisioningRepository,
   TenantWorkspaceRepository,
 } from "./provisioning.ts";
@@ -58,7 +58,7 @@ export async function resolvePrincipal(
   provisioning: TenantProvisioningRepository,
   authenticate: AuthenticateSubjectRequest,
   request: Request,
-): Promise<AuthenticatedPrincipal | null> {
+): Promise<ProvisionedUser | null> {
   const subject = await authenticate(request);
   if (!subject) return null;
   const principal = await provisioning.provisionUser(subject);
@@ -101,6 +101,7 @@ export function createOrganizationHandler(
         name: body.name.trim(),
         slug,
         ownerId: principal.userId,
+        ownerPublicId: principal.userPublicId,
       });
       return json(organization, 201);
     } catch (error) {

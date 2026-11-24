@@ -4,6 +4,7 @@ import {
   withTenantTransaction,
   type AuthenticatedPrincipal,
 } from "./postgres.ts";
+import type { AuditSink } from "./audit.ts";
 
 /**
  * Identity resolved by the host from a verified auth token, before any
@@ -31,6 +32,8 @@ export interface CreateOrganizationInput {
   name: string;
   slug: string;
   ownerId: string;
+  /** Public user id, used for audit attribution. */
+  ownerPublicId?: string;
 }
 
 /**
@@ -72,23 +75,39 @@ interface WorkspaceRow {
   revision: string;
 }
 
-export function createPostgresProvisioningRepository(pool: Pool): TenantProvisioningRepository {
+export function createPostgresProvisioningRepository(
+  pool: Pool,
+  audit?: AuditSink,
+): TenantProvisioningRepository {
   return {
     async provisionUser(subject) {
       if (!subject.authSubject?.trim()) throw new Error("Provisioning requires an auth subject");
-      const result = await pool.query<UserRow>(
+      const result = await pool.query<UserRow & { inserted: boolean }>(
         `insert into public.app_users (auth_subject, email, display_name)
          values ($1, $2, $3)
          on conflict (auth_subject) do update
            set email = coalesce(excluded.email, public.app_users.email),
                display_name = coalesce(excluded.display_name, public.app_users.display_name),
                updated_at = now()
-         returning id::text as id, public_id::text as public_id`,
+         returning id::text as id, public_id::text as public_id,
+                   (xmax = 0) as inserted`,
         [subject.authSubject, subject.email ?? null, subject.displayName ?? null],
       );
       const row = result.rows[0];
       if (!row) throw new Error("User provisioning returned no row");
-      return { userId: row.id, userPublicId: row.public_id };
+      const principal: ProvisionedUser = { userId: row.id, userPublicId: row.public_id };
+      // Sign-ins happen constantly; only the first provision is an event.
+      if (audit && row.inserted) {
+        await audit.record({
+          organizationId: null,
+          actorUserId: row.public_id,
+          action: "user.provisioned",
+          targetType: "user",
+          targetId: row.public_id,
+          metadata: { authSubjectPrefix: subject.authSubject.slice(0, 24) },
+        });
+      }
+      return principal;
     },
 
     async createOrganization(input) {
@@ -107,6 +126,16 @@ export function createPostgresProvisioningRepository(pool: Pool): TenantProvisio
       );
       const row = result.rows[0];
       if (!row) throw new Error("Organization creation returned no row");
+      if (audit) {
+        await audit.record({
+          organizationId: row.id,
+          actorUserId: input.ownerPublicId ?? null,
+          action: "organization.created",
+          targetType: "organization",
+          targetId: row.id,
+          metadata: { slug: row.slug },
+        });
+      }
       return row;
     },
 

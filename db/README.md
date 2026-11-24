@@ -43,7 +43,9 @@ Every request then runs inside a transaction that sets `app.current_user_id` as 
 
 `src/__tests__/saas-postgres.test.ts` applies these migrations to a disposable database, seeds two
 tenants, connects as a member of `opencharts_app`, and verifies tenant isolation plus revision
-conflicts. Run it against a local disposable instance:
+conflicts. Provisioning, user documents, layouts, watchlists, billing, and the audit trail have
+their own suites under `src/__tests__/saas-*.test.ts`. Run them against a local disposable
+instance:
 
 ```sh
 /usr/lib/postgresql/16/bin/initdb -D /tmp/pgdata -U postgres --auth=trust

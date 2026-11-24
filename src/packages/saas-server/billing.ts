@@ -6,6 +6,7 @@ import type {
 import type { SubscriptionPlan, SubscriptionStatus } from "../saas-core/model.ts";
 import type { Pool } from "pg";
 import { withTenantTransaction } from "./postgres.ts";
+import type { AuditSink } from "./audit.ts";
 
 /**
  * The vendor contract every billing provider implements, mirroring the
@@ -80,7 +81,7 @@ interface SubscriptionRow {
  * Runs on the service-role connection: webhook ingestion has no user
  * identity, and subscription reads for members go through the tenant pool.
  */
-export function createPostgresBillingRepository(pool: Pool): BillingRepository {
+export function createPostgresBillingRepository(pool: Pool, audit?: AuditSink): BillingRepository {
   return {
     async recordEvent(provider, event, rawBody) {
       const organization = event.organizationId
@@ -132,6 +133,21 @@ export function createPostgresBillingRepository(pool: Pool): BillingRepository {
       );
       const subscription = result.rows[0];
       if (!subscription) return null;
+      if (audit) {
+        await audit.record({
+          organizationId: event.organizationId,
+          actorUserId: null,
+          action: "billing.subscription.changed",
+          targetType: "organization",
+          targetId: event.organizationId,
+          metadata: {
+            plan: event.plan,
+            status: event.status,
+            provider,
+            providerSubscriptionId: event.providerSubscriptionId,
+          },
+        });
+      }
       return {
         plan: subscription.plan,
         status: subscription.status,

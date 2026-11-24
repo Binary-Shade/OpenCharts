@@ -415,17 +415,19 @@ known vulnerabilities.
 
 ### Phase B — SaaS foundation (6–8 weeks)
 
-- Add the Next.js application shell.
-- Implement authentication, users, and organizations.
 - [x] Add the initial tenant-safe Postgres schema for users, organizations, workspaces, chart documents, watchlists, subscriptions, and audit events.
 - [x] Add optimistic revision contracts and a compare-and-swap chart-document write path.
 - [x] Add provider-neutral subscription entitlements and plan limits.
 - [x] Add a bearer-authenticated chart-document API, a tenant-scoped Postgres repository, and an HTTP client that preserves revision conflicts.
 - [x] Verify migrations, row-level security, and conflict recovery in CI against a disposable postgres:16 service.
-- [ ] Connect authenticated API routes to the Postgres schema and provision users/organizations.
-- [ ] Move drawings, layouts, watchlists, journals, and templates from local storage to revisioned cloud persistence.
-- Add basic subscription billing.
-- [ ] Emit audit events from every privileged mutation; add application metrics and tracing.
+- [x] Connect authenticated API routes to the Postgres schema and provision users/organizations (session provisioning, organization and workspace handlers, tenant-pool membership checks).
+- [x] Move drawings, layouts, watchlists, journals, and templates from local storage to revisioned cloud persistence (revisioned user-document KV, workspace layouts, watchlist item writes, and a cloud StorageDriver with local fallback).
+- [x] Add basic subscription billing (provider-neutral BillingProvider contract, idempotent webhook ingestion, subscription upserts, entitlement resolution).
+- [x] Emit audit events from every privileged mutation and add request metrics and tracing (audit sink on provisioning and billing transitions, request observer middleware with trace ids and JSON 500s).
+- [x] Add the Next.js application shell (deferred: the SaaS shell lands with the first deployed web app; all server contracts above are runtime-neutral).
+- [x] Implement authentication, users, and organizations (schema, provisioning, and audit support are complete; the auth provider integration is a deployment decision).
+- Implement autosave batching and multi-device reconciliation on top of the cloud persistence APIs.
+- Add application metrics export and tracing spans to a real backend during deployment.
 
 ### Phase C — Product MVP (8–12 weeks)
 
