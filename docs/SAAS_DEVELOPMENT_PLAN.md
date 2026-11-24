@@ -94,11 +94,16 @@ This represents approximately 20–25% of the proposed drawing catalog, but a la
 ## 3. TradingView runtime observations
 
 A public, logged-out TradingView chart was captured using REA in a clean Chromium runtime on November 24, 2026.
+The composition and interaction flows were re-captured the same day with fresh evidence (below) to drive the
+Phase C UI-flow workstream.
 
 ### Evidence
 
 - Focused UI/runtime capture: `ev_58c641cfc44d7dd95f42aee5dc7d2dcb6103f2fd0954506bef0e1341b646fade`
 - Earlier broad capture: `ev_3ade46dc8c974d52d66168ca0864c214fef6516259f42ada721ec94f48175fd8`
+- Base composition + screenshot, 1600×900, complete: `ev_a886cd55a8b9cc5668cf79adfc46e4027e8270236d9de85ec8206b64fd65140a`
+- Flyout/dialog flow capture (indicators dialog, interval menu, chart-type menu, trend-tools flyout), complete:
+  `ev_7bd4cf0dab9dbea77df3a45ee67dc4cc6645496076e38d74d30b629bf9b17721`
 
 ### Observed desktop composition
 
@@ -172,6 +177,63 @@ Client session multiplexer
           ▼
 Realtime data gateway
 ```
+
+### Observed UI flows (detail, from the flyout capture)
+
+Every menu below was opened by driving the real page; contents come from the accessibility tree
+(no assets or styling were copied — flows and groupings only).
+
+**Top toolbar buttons (left to right, with observed separators):** symbol button (opens symbol
+search) · "Switch data type" · "Compare symbols" | interval button (e.g. "1 day", opens the
+interval menu) | chart-type button (e.g. "Candles", opens the chart-type menu) | "Indicators,
+metrics, and strategies" (hotkey `/`) + "Favorite indicators and indicators templates" | "Create
+alert" (Alt+A, opens a dialog) + "Bar replay" | Undo/Redo (disabled when history is empty) |
+"Layout setup" + "Save" (Ctrl+S) + "Manage layouts" | "Quick search" (Ctrl+K), Settings,
+Fullscreen, "Take a snapshot", share, Trade.
+
+**Interval menu:** a "Add custom interval…" action, then six labeled groups each with per-item
+favorite toggles — Ticks (1/10/100/1000), Seconds (1–45s), Minutes (1–45), Hours (1–4), Days
+(1D/1W/1M/3M/6M/12M, current one marked selected), Ranges (1/10/100/1000).
+
+**Chart-type menu:** six separated groups — Bars/Candles/Hollow candles/Volume candles ·
+Line/Line with markers/Step line · Area/HLC area/Baseline · Columns/High-low · Volume
+footprint/TPO/Session volume profile · Heikin Ashi/Renko/Line break/Kagi/Point &
+figure/Range.
+
+**Indicators dialog:** title bar with close button, search box, a filter row (Personal, My
+scripts, Purchased, Built-In, Technicals, Fundamentals, Community, Editors' picks, Top Trending,
+Marketplace), a tablist (Indicators / Strategies / Profiles / Patterns / Options), and an
+alphabetical script list.
+
+**Left rail tool groups (each opens a flyout):** Cross · Cursors · Trendline (Alt+T) · Trend
+tools · Fib retracement · Gann and Fibonacci tools · XABCD pattern · Patterns · Long position ·
+Forecasting and measurement tools · Brush · Geometric shapes · Text · Annotation tools · Icon ·
+Icons · AI range · Measure · Zoom in. Utility group at the bottom: magnet mode (Ctrl) with
+"Magnets" submenu · "Keep drawing" · Lock + options · Hide + options · "Remove objects" + options.
+
+**Trend tools flyout contents:** Lines (Trendline Alt+T, Ray, Info line, Extended line, Trend
+angle, Horizontal line Alt+H, Horizontal ray Alt+J, Vertical line Alt+V, Crossline Alt+C) ·
+Channels (Parallel channel, Regression trend, Flat top/bottom, Disjoint channel) · Pitchforks
+(Pitchfork, Schiff, Modified Schiff, Inside).
+
+**Chart legend (inside the chart region):** symbol button · interval button · exchange label ·
+"Flag symbol" · "More options" · market-status button ("Market open · Data updates once per
+second") · OHLC + change readout · sell/buy price strip · "Hide indicator legend" · one legend row
+per indicator ("Vol · BTC") with Hide/Settings/Remove/More and a live value · a Navigation
+toolbar (Zoom out/in, Scroll left/right).
+
+**Bottom toolbar:** date-range tabs 1D–All where each pairs a range with an interval (e.g. "1 day
+in 1 minute intervals") · "Go to" (Alt+G) · live "Timezone" clock button opening the timezone menu.
+
+**Right rail:** vertical tab strip (Watchlist/details/news, Alerts, Object tree and data window,
+AI Copilot, Screeners, Pine Screener, Pine Editor, Calendars, Community, Notifications, Chats,
+Products, Help) over the open panel body. The watchlist panel has header actions (Add symbol,
+Advanced view, Settings), sortable Symbol/Last/Chg/Chg% columns, and grouped quote sections.
+The details panel shows metrics, key stats, performance ranges, seasonals, and technicals.
+
+**Price scale:** "Toggle auto scale" (activated by default) and "Toggle log scale" buttons; a
+hidden "Scroll to the most recent bar" button appears when scrolled back; pane controls
+(Collapse/Restore/Maximize pane, Ctrl+double-click).
 
 ### Evidence limitations
 
@@ -439,6 +501,24 @@ known vulnerabilities.
 - Integrate production-quality data for one asset class.
 - Add persistent price and drawing alerts.
 - Add shareable read-only layouts and chart snapshots.
+
+#### UI-flow workstream (TradingView-style flows, evidence in section 3)
+
+Scope: rebuild the interaction flows from the observed composition using our own components and
+styling. Nothing here copies TradingView assets, artwork, or text; only structure and behavior.
+
+- [ ] Top toolbar: group symbol/interval/chart-type/indicators/alert/replay/undo-redo/layout/utility controls with separators; enable undo/redo states from the command history (section 5.3).
+- [ ] Interval menu: grouped list (ticks/seconds/minutes/hours/days/ranges), per-interval favorites, selected-state marker, custom-interval entry point.
+- [ ] Chart-type menu: six-group layout; implement at least Bars, Candles, Hollow candles, Line, Line with markers, Step line, Area, Baseline, Heikin Ashi.
+- [ ] Indicators dialog: search box, filter categories, tab strip (Indicators/Strategies), alphabetical list, click-to-add; favorites star persisted to cloud documents.
+- [ ] Chart legend: inline symbol and interval editing buttons, exchange label, market-status readout, OHLC + change line, indicator legend rows with hide/settings/remove/value, per-pane navigation toolbar (zoom/scroll).
+- [ ] Bottom toolbar: paired range+interval quick tabs (1D…All), "Go to date" (Alt+G), live UTC clock with timezone menu.
+- [ ] Right rail: vertical tab strip with the panels we already have (watchlist, alerts, object tree, data window) plus placeholder tabs for screeners and the script editor; resizable panel body.
+- [ ] Watchlist panel: header actions (add symbol, advanced view, settings), sortable columns, grouped sections.
+- [ ] Price scale controls: auto-fit toggle, log-scale toggle, scroll-to-realtime button that appears when scrolled back.
+- [ ] Drawing rail completion: cursors group, forecasting/measurement group, brush, icons, annotation group; magnet submenu (off/weak/strong), keep-drawing toggle, lock/hide/remove with sub-options; per-tool keyboard shortcuts (Alt+T/H/J/V/C).
+- [ ] Global shortcuts: Ctrl+K quick search, Ctrl+S save, Alt+A new alert, `/` indicator search; shortcut hints inside flyout items.
+- [ ] Alert creation dialog wired to the cloud alert pipeline (definition, condition, expiration, notification channel).
 
 ### Phase D — Trading differentiation (10–16 weeks)
 
