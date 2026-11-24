@@ -253,6 +253,8 @@ export interface ChartPanelProps {
   onRedoDrawing?: () => void;
   /** Snap drawing anchors to candle O/H/L/C — off / weak (near) / strong (always). */
   magnetMode?: MagnetMode;
+  onSetMagnet?: (mode: MagnetMode) => void;
+  onToggleStayInDrawingMode?: () => void;
   /** Keep the drawing tool armed after each placement. */
   stayInDrawingMode?: boolean;
   positions: Position[];
@@ -1367,6 +1369,8 @@ export function ChartPanel({
   onUndoDrawing,
   onRedoDrawing,
   magnetMode = "none",
+  onSetMagnet,
+  onToggleStayInDrawingMode,
   stayInDrawingMode = false,
   positions,
   orders,
@@ -2529,7 +2533,16 @@ export function ChartPanel({
       />
 
       {/* Left vertical tool rail (TradingView-style grouped flyouts) */}
-      <DrawingToolRail drawingTool={drawingTool} onDrawingTool={(t) => onDrawingToolSelect?.(t)} />
+      <DrawingToolRail
+        drawingTool={drawingTool}
+        onDrawingTool={(t) => onDrawingToolSelect?.(t)}
+        magnetMode={magnetMode}
+        onSetMagnet={onSetMagnet}
+        stayInDrawingMode={stayInDrawingMode}
+        onToggleStayInDrawingMode={onToggleStayInDrawingMode}
+        onClearDrawings={onClearDrawings}
+        drawingCount={drawings.length}
+      />
       </div>
 
       {/* Bottom bar: range tabs, go-to-date, UTC clock */}

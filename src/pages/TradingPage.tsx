@@ -244,6 +244,10 @@ export function TradingPage() {
               onUndoDrawing={undoDrawing}
               onRedoDrawing={redoDrawing}
               magnetMode={chartPrefs.magnetMode}
+              onSetMagnet={(m) => updateChartPreferences({ magnetMode: m })}
+              onToggleStayInDrawingMode={() =>
+                updateChartPreferences({ stayInDrawingMode: !chartPrefs.stayInDrawingMode })
+              }
               stayInDrawingMode={chartPrefs.stayInDrawingMode}
               positions={chartPositions}
               orders={chartOrders}
