@@ -1,0 +1,8 @@
+{
+  "name": "@opencharts/indicators",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.ts"
+  }
+}

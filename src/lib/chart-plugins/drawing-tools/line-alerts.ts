@@ -1,4 +1,4 @@
-import type { DrawingLine } from "../../../pages/trading/constants";
+import type { DrawingLine } from "../../../packages/drawing-engine/model.ts";
 
 // Client-side line-cross alerts: when the live mid price crosses a drawing that
 // has `alertEnabled`, the chart fires an in-session toast + sound. (Server-side

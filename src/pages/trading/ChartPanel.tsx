@@ -38,7 +38,7 @@ import { CrosshairHighlightPrimitive } from "../../lib/chart-plugins/highlight-b
 import { SessionBreaks } from "../../lib/chart-plugins/session-breaks/session-breaks.ts";
 import { SessionHighlighting } from "../../lib/chart-plugins/session-highlighting/session-highlighting.ts";
 import { TooltipPrimitive } from "../../lib/chart-plugins/tooltip/tooltip.ts";
-import type { IndicatorType } from "../../lib/indicators.ts";
+import type { IndicatorType } from "../../packages/indicators/index.ts";
 import { cn } from "../../lib/utils.ts";
 import { api } from "../../services/api.ts";
 import { queryKeys } from "../../services/queries.ts";
@@ -214,6 +214,7 @@ export interface ChartPanelProps {
   drawings: DrawingLine[];
   onAddDrawing: (d: DrawingLine) => void;
   onUpdateDrawing?: (d: DrawingLine) => void;
+  onUpdateDrawings?: (drawings: DrawingLine[]) => void;
   onRemoveDrawing?: (id: string) => void;
   /** Called when a drawing completes/cancels so the parent can disarm the tool. */
   onDrawingComplete?: () => void;
@@ -1090,6 +1091,7 @@ export function ChartPanel({
   drawings,
   onAddDrawing,
   onUpdateDrawing,
+  onUpdateDrawings,
   onRemoveDrawing,
   onDrawingComplete,
   onDrawingToolSelect,
@@ -1237,6 +1239,7 @@ export function ChartPanel({
   const styleDefaultsRef = useRef(getStyleDefaults());
   const onAddDrawingRef = useRef(onAddDrawing);
   const onUpdateDrawingRef = useRef(onUpdateDrawing);
+  const onUpdateDrawingsRef = useRef(onUpdateDrawings);
   const onRemoveDrawingRef = useRef(onRemoveDrawing);
   const onDrawingCompleteRef = useRef(onDrawingComplete);
   const onDrawingToolSelectRef = useRef(onDrawingToolSelect);
@@ -1273,6 +1276,7 @@ export function ChartPanel({
   useEffect(() => {
     onAddDrawingRef.current = onAddDrawing;
     onUpdateDrawingRef.current = onUpdateDrawing;
+    onUpdateDrawingsRef.current = onUpdateDrawings;
     onRemoveDrawingRef.current = onRemoveDrawing;
     onDrawingCompleteRef.current = onDrawingComplete;
     onDrawingToolSelectRef.current = onDrawingToolSelect;
@@ -1610,6 +1614,10 @@ export function ChartPanel({
       callbacks: {
         onAdd: (d) => onAddDrawingRef.current(d),
         onUpdate: (d) => onUpdateDrawingRef.current?.(d),
+        onUpdateMany: (drawings) => {
+          if (onUpdateDrawingsRef.current) onUpdateDrawingsRef.current(drawings);
+          else for (const drawing of drawings) onUpdateDrawingRef.current?.(drawing);
+        },
         onRemove: (id) => onRemoveDrawingRef.current?.(id),
         onToolFinished: () => onDrawingCompleteRef.current?.(),
         onSelectionChange: (ids) => {
@@ -2113,7 +2121,12 @@ export function ChartPanel({
       />
 
       {/* Chart container — cursor is managed imperatively by DrawingToolsManager */}
-      <div ref={containerRef} className="w-full h-full" onContextMenu={handleChartContextMenu} />
+      <div
+        ref={containerRef}
+        data-testid="chart-canvas"
+        className="w-full h-full"
+        onContextMenu={handleChartContextMenu}
+      />
 
       {/* Left vertical tool rail (TradingView-style grouped flyouts) */}
       <DrawingToolRail drawingTool={drawingTool} onDrawingTool={(t) => onDrawingToolSelect?.(t)} />

@@ -1,7 +1,13 @@
 import { getAdapter } from "../adapter/registry.ts";
 import type { OrderModification, PositionModification } from "../adapter/types.ts";
 import { uid } from "../lib/uid.ts";
-import type { DrawingLine } from "../pages/trading/constants.ts";
+import { legacySymbolToInstrument, type InstrumentRef } from "../packages/market-schema/index.ts";
+import {
+  parseDrawingDocument,
+  updateDrawingDocument,
+  type DrawingDocument,
+  type DrawingLine,
+} from "../packages/drawing-engine/index.ts";
 import type { AccountMetricsResponse } from "./api/auth.ts";
 import type {
   CreateJournalEntryInput,
@@ -80,18 +86,36 @@ async function writeJSON(key: string, value: unknown): Promise<void> {
   }
 }
 
-const DRAW_KEY = (symbol: string) => `oc_drawings_${symbol}`;
+const DRAW_KEY = (symbol: string) => `oc_drawings:v1:${symbol}`;
+const LEGACY_DRAW_KEY = (symbol: string) => `oc_drawings_${symbol}`;
 const JOURNAL_KEY = "oc_journal_entries";
+
+async function loadDrawingDocument(symbol: string): Promise<DrawingDocument> {
+  const current = await readJSON<unknown>(DRAW_KEY(symbol), null);
+  if (current !== null) return parseDrawingDocument(current, symbol);
+
+  // One-way, non-destructive migration. Keeping the legacy key makes rollback
+  // safe for integrators that deploy an older OpenCharts build.
+  const legacy = await readJSON<unknown>(LEGACY_DRAW_KEY(symbol), null);
+  const document = parseDrawingDocument(legacy, symbol);
+  if (legacy !== null) await writeJSON(DRAW_KEY(symbol), document);
+  return document;
+}
 
 const chartDrawings = {
   list: async (symbol: string): Promise<DrawingLine[]> => {
-    const list = await readJSON<DrawingLine[]>(DRAW_KEY(symbol), []);
-    return Array.isArray(list) ? list : [];
+    return (await loadDrawingDocument(symbol)).drawings;
   },
   save: async (symbol: string, _timeframe: string, drawing: DrawingLine) => {
-    const list = (await chartDrawings.list(symbol)).filter((d) => d.id !== drawing.id);
+    const document = await loadDrawingDocument(symbol);
+    const list = document.drawings.filter((d) => d.id !== drawing.id);
     list.push(drawing);
-    await writeJSON(DRAW_KEY(symbol), list);
+    await writeJSON(DRAW_KEY(symbol), updateDrawingDocument(document, list));
+    return { saved: true };
+  },
+  replace: async (symbol: string, drawings: DrawingLine[]) => {
+    const document = await loadDrawingDocument(symbol);
+    await writeJSON(DRAW_KEY(symbol), updateDrawingDocument(document, drawings));
     return { saved: true };
   },
   remove: async (drawingId: string) => {
@@ -101,16 +125,21 @@ const chartDrawings = {
     for (const symbol of symbols) {
       const list = await chartDrawings.list(symbol.name);
       if (list.some((d) => d.id === drawingId)) {
-        await writeJSON(
-          DRAW_KEY(symbol.name),
+        const document = await loadDrawingDocument(symbol.name);
+        await writeJSON(DRAW_KEY(symbol.name), updateDrawingDocument(
+          document,
           list.filter((d) => d.id !== drawingId),
-        );
+        ));
       }
     }
     return { deleted: true };
   },
   clear: async (symbol: string) => {
-    await writeJSON(DRAW_KEY(symbol), []);
+    const document = await loadDrawingDocument(symbol);
+    await writeJSON(
+      DRAW_KEY(symbol),
+      updateDrawingDocument(document, []),
+    );
     return { cleared: true };
   },
 };
@@ -189,6 +218,12 @@ export const api = {
 
   // ── Market data ──
   getSymbols: async (): Promise<Symbol[]> => getAdapter().marketData.getSymbols(),
+  getInstruments: async (): Promise<InstrumentRef[]> => {
+    const source = getAdapter().marketData;
+    if (source.getInstruments) return source.getInstruments();
+    const symbols = await source.getSymbols();
+    return symbols.map((symbol) => legacySymbolToInstrument(symbol));
+  },
 
   getCandles: async (
     symbol: string,

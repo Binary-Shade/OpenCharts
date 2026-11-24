@@ -71,7 +71,10 @@ export function priceTickSize(price: number | undefined, szDecimals: number): nu
     price !== undefined && price > 0
       ? allowedPriceDecimals(price, szDecimals)
       : Math.max(0, HL_MAX_PERP_DECIMALS - szDecimals);
-  return 10 ** -decimals;
+  // Construct from a decimal literal rather than exponentiating. V8 can expose
+  // `10 ** -4` as 0.00009999999999999999, which breaks exact tick comparisons
+  // and can leak noisy increments into chart labels and order validation.
+  return decimals === 0 ? 1 : Number(`1e-${decimals}`);
 }
 
 /** Round `price` to the nearest multiple of `tick` (float-noise free). */

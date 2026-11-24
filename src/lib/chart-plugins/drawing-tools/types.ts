@@ -1,4 +1,4 @@
-import type { DrawingLine, DrawingTool } from "../../../pages/trading/constants";
+import type { DrawingLine, DrawingTool } from "../../../packages/drawing-engine/model.ts";
 
 /** A point in chart data space (unix-seconds time + price). */
 export interface DataPoint {
@@ -66,6 +66,8 @@ export interface Hit {
 export interface DrawingCallbacks {
   onAdd: (d: DrawingLine) => void;
   onUpdate: (d: DrawingLine) => void;
+  /** Commits related edits as one undo/redo entry (group drag, multi-select nudge). */
+  onUpdateMany?: (drawings: DrawingLine[]) => void;
   onRemove: (id: string) => void;
   /** Fired when a tool finishes (drawing committed or cancelled via Escape). */
   onToolFinished: () => void;

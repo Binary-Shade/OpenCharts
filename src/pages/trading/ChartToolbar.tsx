@@ -37,7 +37,7 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { INDICATOR_REGISTRY, type IndicatorType } from "../../lib/indicators.ts";
+import { INDICATOR_REGISTRY, type IndicatorType } from "../../packages/indicators/index.ts";
 import { cn, formatNumber } from "../../lib/utils.ts";
 import {
   type DrawingLine,

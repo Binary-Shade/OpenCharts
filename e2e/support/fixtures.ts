@@ -50,7 +50,10 @@ async function guardNetwork(page: Page, forbidden: string[]): Promise<void> {
 export const test = base.extend<{ hl: Harness }>({
   hl: async ({ page }, run) => {
     const wallet = new TestWallet();
-    const fake = new FakeHyperliquid({ walletAddress: wallet.account.address });
+    const fake = new FakeHyperliquid({
+      walletAddress: wallet.account.address,
+      marketNowMs: Date.UTC(2026, 10, 24, 12, 0, 0),
+    });
     const h: Harness = {
       fake,
       wallet,

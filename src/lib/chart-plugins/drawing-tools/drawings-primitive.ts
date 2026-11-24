@@ -4,7 +4,7 @@ import type {
   ISeriesPrimitivePaneRenderer,
   ISeriesPrimitivePaneView,
 } from "lightweight-charts";
-import type { DrawingLine } from "../../../pages/trading/constants";
+import type { DrawingLine } from "../../../packages/drawing-engine/model.ts";
 import { PluginBase } from "../plugin-base";
 import { renderEntry } from "./renderers";
 import { makeResolveCtx, resolveEntry } from "./resolve";

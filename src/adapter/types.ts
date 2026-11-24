@@ -7,6 +7,7 @@ import type {
   Position,
   Symbol,
 } from "../services/schemas.ts";
+import type { InstrumentRef } from "../packages/market-schema/index.ts";
 
 /**
  * The OpenCharts adapter contract.
@@ -26,6 +27,8 @@ export type ConnectionState = "connected" | "connecting" | "reconnecting" | "dis
 
 export interface CandleRequest {
   symbol: string;
+  /** Stable canonical id when the adapter exposes getInstruments(). */
+  instrumentId?: string;
   /** "1m" | "5m" | "15m" | "30m" | "1h" | "4h" | "1d" | "1w" */
   timeframe: string;
   /** Most recent N bars. Omitted means "whatever you have". */
@@ -38,6 +41,7 @@ export interface CandleRequest {
 
 export interface Quote {
   symbol: string;
+  instrumentId?: string;
   bid: number;
   ask: number;
   timestamp: number;
@@ -45,10 +49,11 @@ export interface Quote {
 
 /** Pushed by `marketData.subscribe`. */
 export type MarketEvent =
-  | { type: "tick"; symbol: string; bid: number; ask: number; timestamp?: number }
+  | { type: "tick"; symbol: string; instrumentId?: string; bid: number; ask: number; timestamp?: number }
   | {
       type: "candle";
       symbol: string;
+      instrumentId?: string;
       timeframe: string;
       open: number;
       high: number;
@@ -61,6 +66,9 @@ export type MarketEvent =
 export interface MarketDataSource {
   /** Instruments the terminal may chart and trade. */
   getSymbols(): Promise<Symbol[]>;
+
+  /** Canonical reference data. Optional during the legacy Symbol migration. */
+  getInstruments?(): Promise<InstrumentRef[]>;
 
   /**
    * Historical bars, oldest first.
@@ -192,3 +200,4 @@ export type {
   Position,
   Symbol,
 };
+export type { InstrumentRef } from "../packages/market-schema/index.ts";

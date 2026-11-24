@@ -19,7 +19,7 @@ import {
 } from "../hooks/useChartPreferences.ts";
 import { useTradeSound } from "../hooks/useTradeSound.ts";
 import { safeStorage } from "../lib/safe-storage.ts";
-import type { IndicatorType } from "../lib/indicators.ts";
+import type { IndicatorType } from "../packages/indicators/index.ts";
 import type { CreateJournalEntryInput, UpdateJournalEntryInput } from "../services/api/journal.ts";
 import { api } from "../services/api.ts";
 import {
@@ -162,6 +162,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     drawings,
     addDrawing,
     updateDrawing,
+    updateDrawings,
     removeDrawing,
     clearDrawings,
     undo: undoDrawing,
@@ -457,6 +458,7 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     drawings,
     addDrawing,
     updateDrawing,
+    updateDrawings,
     removeDrawing,
     clearDrawings,
     undoDrawing,

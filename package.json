@@ -51,6 +51,18 @@
       "types": "./dist-lib/adapter/conformance.d.ts",
       "import": "./dist-lib/conformance.js"
     },
+    "./drawing-engine": {
+      "types": "./dist-lib/drawing-engine.d.ts",
+      "import": "./dist-lib/drawing-engine.js"
+    },
+    "./indicators": {
+      "types": "./dist-lib/indicators.d.ts",
+      "import": "./dist-lib/indicators.js"
+    },
+    "./market-schema": {
+      "types": "./dist-lib/market-schema.d.ts",
+      "import": "./dist-lib/market-schema.js"
+    },
     "./style.css": "./dist-lib/style.css",
     "./package.json": "./package.json"
   },
@@ -125,6 +137,6 @@
     "typescript-eslint": "^8.70.0",
     "vite": "^6.0.0",
     "vite-plugin-dts": "^5.1.1",
-    "vitest": "^2.1.9"
+    "vitest": "^5.1.1"
   }
 }

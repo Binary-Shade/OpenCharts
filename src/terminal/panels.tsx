@@ -29,6 +29,7 @@ export function Chart() {
       drawings={t.drawings}
       onAddDrawing={t.addDrawing}
       onUpdateDrawing={t.updateDrawing}
+      onUpdateDrawings={t.updateDrawings}
       onRemoveDrawing={t.removeDrawing}
       onDrawingComplete={() => t.setDrawingTool("none")}
       onDrawingToolSelect={t.setDrawingTool}

@@ -1,4 +1,5 @@
 import { dist, distToSegment, type Pt, pointInBox } from "./geometry";
+import { getDrawingTypeDefinition } from "../../../packages/drawing-engine/registry.ts";
 import type { Hit, PriceKey, ResolvedEntry, TimeKey } from "./types";
 
 const HANDLE_TOLERANCE = 8;
@@ -24,7 +25,7 @@ export function hitTest(entries: ResolvedEntry[], p: Pt, scale = 1): Hit | null 
 }
 
 function hitEntry(e: ResolvedEntry, p: Pt, tol: Tol): Hit | null {
-  switch (e.d.type) {
+  switch (getDrawingTypeDefinition(e.d.type).hitStrategy) {
     case "trendline":
       return hitTrendline(e, p, tol);
     case "horizontal":
@@ -35,16 +36,11 @@ function hitEntry(e: ResolvedEntry, p: Pt, tol: Tol): Hit | null {
       return hitFibonacci(e, p, tol);
     case "position":
       return hitPosition(e, p, tol);
-    case "arrow":
-      return hitTrendline(e, p, tol);
-    case "fibextension":
-      return hitFibonacci(e, p, tol);
     case "vertical":
       return hitVertical(e, p, tol);
     case "channel":
       return hitChannel(e, p, tol);
-    case "ellipse":
-    case "triangle":
+    case "box-shape":
       return hitBoxShape(e, p, tol);
     case "text":
       return hitText(e, p, tol);

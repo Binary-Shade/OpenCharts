@@ -1,5 +1,5 @@
 import type { CandlestickData, Time } from "lightweight-charts";
-import type { CandleData } from "../../lib/indicators.ts";
+import type { CandleData } from "../../packages/indicators/index.ts";
 import { KNOWN_CURRENCIES } from "./constants.ts";
 import type { Timeframe } from "./constants.ts";
 

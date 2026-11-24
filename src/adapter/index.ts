@@ -32,4 +32,5 @@ export type {
   TradingEvent,
   TradingGateway,
   Unsubscribe,
+  InstrumentRef,
 } from "./types.ts";

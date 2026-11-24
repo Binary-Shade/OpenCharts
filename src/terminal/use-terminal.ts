@@ -1,5 +1,5 @@
 import { createContext, useContext } from "react";
-import type { IndicatorType } from "../lib/indicators.ts";
+import type { IndicatorType } from "../packages/indicators/index.ts";
 import type { CreateJournalEntryInput, UpdateJournalEntryInput } from "../services/api/journal.ts";
 import type {
   useCandles,
@@ -68,6 +68,7 @@ export interface TerminalContextValue {
   drawings: DrawingLine[];
   addDrawing: (drawing: DrawingLine) => void;
   updateDrawing: (drawing: DrawingLine) => void;
+  updateDrawings: (drawings: DrawingLine[]) => void;
   removeDrawing: (id: string) => void;
   clearDrawings: () => void;
   undoDrawing: () => void;

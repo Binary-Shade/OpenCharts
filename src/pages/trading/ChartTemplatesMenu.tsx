@@ -7,7 +7,7 @@ import {
   updateChartPreferences,
   useChartPreferences,
 } from "../../hooks/useChartPreferences.ts";
-import type { IndicatorType } from "../../lib/indicators.ts";
+import type { IndicatorType } from "../../packages/indicators/index.ts";
 import { cn } from "../../lib/utils.ts";
 import {
   type ChartTemplate,

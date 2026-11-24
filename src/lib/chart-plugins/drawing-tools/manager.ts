@@ -4,7 +4,8 @@ import type {
   DrawingTool,
   DrawingType,
   MagnetMode,
-} from "../../../pages/trading/constants";
+} from "../../../packages/drawing-engine/model.ts";
+import { getDrawingToolDefinition } from "../../../packages/drawing-engine/registry.ts";
 import { DrawingsPrimitive } from "./drawings-primitive";
 import { dist, type Pt, snapAngle } from "./geometry";
 import { hitTest } from "./hit-test";
@@ -303,9 +304,10 @@ export class DrawingToolsManager {
     if (tool === "long-position" || tool === "short-position") {
       return this.makePosition(tool === "long-position" ? "long" : "short", p1, p2);
     }
+    const definition = getDrawingToolDefinition(tool);
     const base = {
       id: crypto.randomUUID(),
-      color: tool === "trendline" ? "#2196F3" : "#f0b90b",
+      color: definition?.defaultColor ?? "#f0b90b",
       createdTf: this.timeframe,
     };
     if (tool === "horizontal") return { ...base, type: "horizontal", price: p1.price };
@@ -592,7 +594,7 @@ export class DrawingToolsManager {
     const byId = new Map(updates.map((u) => [u.id, u]));
     this.drawings = this.drawings.map((d) => byId.get(d.id) ?? d);
     this.primitive.setDrawings(this.drawings);
-    for (const u of updates) this.cb.onUpdate({ ...u });
+    this.commitUpdates(updates);
   }
 
   private handleEscape(): void {
@@ -869,10 +871,21 @@ export class DrawingToolsManager {
     this.applyCursor(null);
     if (!drag.moved) return;
     const ids = [drag.hit.id, ...drag.group.map((g) => g.origin.id)];
-    for (const id of ids) {
-      const d = this.drawings.find((x) => x.id === id);
-      if (d) this.cb.onUpdate({ ...d });
+    this.commitUpdates(
+      ids.flatMap((id) => {
+        const drawing = this.drawings.find((candidate) => candidate.id === id);
+        return drawing ? [{ ...drawing }] : [];
+      }),
+    );
+  }
+
+  private commitUpdates(updates: DrawingLine[]): void {
+    if (updates.length === 0) return;
+    if (updates.length > 1 && this.cb.onUpdateMany) {
+      this.cb.onUpdateMany(updates.map((drawing) => ({ ...drawing })));
+      return;
     }
+    for (const drawing of updates) this.cb.onUpdate({ ...drawing });
   }
 
   // ── Snapping (Shift = 45° angle, magnet = OHLC price) ──────────────

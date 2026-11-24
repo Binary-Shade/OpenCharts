@@ -1,5 +1,6 @@
 import type { BitmapCoordinatesRenderingScope } from "fancy-canvas";
-import type { DrawingLine, DrawingLineStyle } from "../../../pages/trading/constants";
+import type { DrawingLine, DrawingLineStyle } from "../../../packages/drawing-engine/model.ts";
+import { getDrawingTypeDefinition } from "../../../packages/drawing-engine/registry.ts";
 import type { DrawCtxInfo, ResolvedEntry, ResolvedFibLevel } from "./types";
 
 const HANDLE_RADIUS = 5;
@@ -82,7 +83,7 @@ export function renderEntry(
   e: ResolvedEntry,
   info: DrawCtxInfo,
 ): void {
-  switch (e.d.type) {
+  switch (getDrawingTypeDefinition(e.d.type).renderStrategy) {
     case "trendline":
       renderTrendline(scope, e);
       break;
@@ -115,9 +116,6 @@ export function renderEntry(
       break;
     case "text":
       renderText(scope, e);
-      break;
-    case "fibextension":
-      renderFibonacci(scope, e);
       break;
     default:
       break;

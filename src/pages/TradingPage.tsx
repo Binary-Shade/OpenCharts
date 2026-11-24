@@ -2,7 +2,7 @@ import { useCallback, useRef, useState } from "react";
 import { MobileAccountBar, MobileTradingPanel } from "../components/MobileTradingPanel.tsx";
 import { NewsFeed as MarketNewsFeed } from "../components/TradingPowerFeatures.tsx";
 import { TradingViewTechnicalAnalysis } from "../components/TradingViewWidgets.tsx";
-import type { IndicatorType } from "../lib/indicators.ts";
+import type { IndicatorType } from "../packages/indicators/index.ts";
 import { safeStorage } from "../lib/safe-storage.ts";
 import type { PlaceOrderInput } from "../services/schemas.ts";
 import { updateChartPreferences } from "../hooks/useChartPreferences.ts";
@@ -60,6 +60,7 @@ export function TradingPage() {
     drawings,
     addDrawing,
     updateDrawing,
+    updateDrawings,
     removeDrawing,
     clearDrawings,
     undoDrawing,
@@ -221,6 +222,7 @@ export function TradingPage() {
               drawings={drawings}
               onAddDrawing={addDrawing}
               onUpdateDrawing={updateDrawing}
+              onUpdateDrawings={updateDrawings}
               onRemoveDrawing={removeDrawing}
               onDrawingComplete={() => setDrawingTool("none")}
               onDrawingToolSelect={setDrawingTool}
@@ -388,4 +390,3 @@ export function TradingPage() {
     </div>
   );
 }
-

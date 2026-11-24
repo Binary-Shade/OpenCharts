@@ -1,15 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
-import type { DrawingLine } from "../pages/trading/constants";
+import {
+  DrawingCommandStore,
+  type DrawingCommand,
+  type DrawingLine,
+} from "../packages/drawing-engine/index.ts";
 import { api } from "../services/api";
-
-// One reversible mutation for the undo/redo stacks.
-type HistoryOp =
-  | { kind: "add"; drawing: DrawingLine }
-  | { kind: "update"; before: DrawingLine; after: DrawingLine }
-  | { kind: "remove"; drawing: DrawingLine }
-  | { kind: "clear"; drawings: DrawingLine[] };
-
-const HISTORY_LIMIT = 100;
 
 // Render order: lower zIndex first (drawn underneath). Stable for ties, so
 // drawings without an explicit zIndex keep creation order.
@@ -38,8 +33,7 @@ export function useChartDrawings(symbol: string, timeframe: string) {
   // (needed to capture `before` snapshots for undo without stale closures).
   // Only ever touched from event handlers and async callbacks, never render.
   const drawingsRef = useRef<DrawingLine[]>([]);
-  const undoStackRef = useRef<HistoryOp[]>([]);
-  const redoStackRef = useRef<HistoryOp[]>([]);
+  const commandStoreRef = useRef(new DrawingCommandStore());
 
   // Drawings load per symbol and are shared across timeframes (TradingView
   // behavior) — switching TF keeps them in place with no refetch.
@@ -54,8 +48,7 @@ export function useChartDrawings(symbol: string, timeframe: string) {
         if (cancelled) return;
         const sorted = sortByZ(data ?? []);
         drawingsRef.current = sorted;
-        undoStackRef.current = [];
-        redoStackRef.current = [];
+        commandStoreRef.current.reset(sorted);
         setLoaded({ symbol, list: sorted });
       })
       .catch(() => {});
@@ -85,84 +78,95 @@ export function useChartDrawings(symbol: string, timeframe: string) {
     api.chartDrawings.remove(id).catch(() => {});
   }, [setDrawings]);
 
-  const pushHistory = useCallback((op: HistoryOp) => {
-    undoStackRef.current.push(op);
-    if (undoStackRef.current.length > HISTORY_LIMIT) undoStackRef.current.shift();
-    redoStackRef.current = [];
+  const record = useCallback((command: DrawingCommand) => {
+    commandStoreRef.current.execute(command);
   }, []);
 
   // ── Public mutators (record history) ──
 
   const addDrawing = useCallback(
     (d: DrawingLine) => {
-      pushHistory({ kind: "add", drawing: d });
+      record({ kind: "add", drawing: d });
       applyAdd(d);
     },
-    [pushHistory, applyAdd],
+    [record, applyAdd],
   );
 
   const updateDrawing = useCallback(
     (d: DrawingLine) => {
       const before = drawingsRef.current.find((x) => x.id === d.id);
-      if (before) pushHistory({ kind: "update", before, after: d });
+      if (before) record({ kind: "update", before, after: d });
       applyUpdate(d);
     },
-    [pushHistory, applyUpdate],
+    [record, applyUpdate],
+  );
+
+  const updateDrawings = useCallback(
+    (updates: DrawingLine[]) => {
+      if (updates.length === 0) return;
+      const currentById = new Map(drawingsRef.current.map((drawing) => [drawing.id, drawing]));
+      const commands: DrawingCommand[] = updates.flatMap((after) => {
+        const before = currentById.get(after.id);
+        return before ? [{ kind: "update" as const, before, after }] : [];
+      });
+      if (commands.length === 0) return;
+      commandStoreRef.current.executeBatch(commands);
+      const updatesById = new Map(updates.map((drawing) => [drawing.id, drawing]));
+      drawingsRef.current = sortByZ(
+        drawingsRef.current.map((drawing) => updatesById.get(drawing.id) ?? drawing),
+      );
+      setDrawings(drawingsRef.current);
+      Promise.all(
+        updates.map((drawing) => api.chartDrawings.save(symbol, timeframe, drawing)),
+      ).catch(() => {});
+    },
+    [setDrawings, symbol, timeframe],
   );
 
   const removeDrawing = useCallback(
     (id: string) => {
       const drawing = drawingsRef.current.find((x) => x.id === id);
-      if (drawing) pushHistory({ kind: "remove", drawing });
+      if (drawing) record({ kind: "remove", drawing });
       applyRemove(id);
     },
-    [pushHistory, applyRemove],
+    [record, applyRemove],
   );
 
   const clearDrawings = useCallback(() => {
     if (drawingsRef.current.length > 0) {
-      pushHistory({ kind: "clear", drawings: drawingsRef.current });
+      record({ kind: "clear", drawings: drawingsRef.current });
     }
     drawingsRef.current = [];
     setDrawings([]);
     api.chartDrawings.clear(symbol).catch(() => {});
-  }, [pushHistory, setDrawings, symbol]);
+  }, [record, setDrawings, symbol]);
 
   // ── Undo / redo ──
 
-  const revertOp = useCallback(
-    (op: HistoryOp) => {
-      if (op.kind === "add") applyRemove(op.drawing.id);
-      else if (op.kind === "update") applyUpdate(op.before);
-      else if (op.kind === "remove") applyAdd(op.drawing);
-      else for (const d of op.drawings) applyAdd(d);
-    },
-    [applyAdd, applyUpdate, applyRemove],
-  );
-
-  const replayOp = useCallback(
-    (op: HistoryOp) => {
-      if (op.kind === "add") applyAdd(op.drawing);
-      else if (op.kind === "update") applyUpdate(op.after);
-      else if (op.kind === "remove") applyRemove(op.drawing.id);
-      else for (const d of op.drawings) applyRemove(d.id);
-    },
-    [applyAdd, applyUpdate, applyRemove],
-  );
+  const applyHistorySnapshot = useCallback((next: DrawingLine[]) => {
+    drawingsRef.current = sortByZ(next);
+    setDrawings(drawingsRef.current);
+    api.chartDrawings.replace(symbol, drawingsRef.current).catch(() => {});
+  }, [setDrawings, symbol]);
 
   const undo = useCallback(() => {
-    const op = undoStackRef.current.pop();
-    if (!op) return;
-    revertOp(op);
-    redoStackRef.current.push(op);
-  }, [revertOp]);
+    const next = commandStoreRef.current.undo();
+    if (next) applyHistorySnapshot(next);
+  }, [applyHistorySnapshot]);
 
   const redo = useCallback(() => {
-    const op = redoStackRef.current.pop();
-    if (!op) return;
-    replayOp(op);
-    undoStackRef.current.push(op);
-  }, [replayOp]);
+    const next = commandStoreRef.current.redo();
+    if (next) applyHistorySnapshot(next);
+  }, [applyHistorySnapshot]);
 
-  return { drawings, addDrawing, updateDrawing, removeDrawing, clearDrawings, undo, redo };
+  return {
+    drawings,
+    addDrawing,
+    updateDrawing,
+    updateDrawings,
+    removeDrawing,
+    clearDrawings,
+    undo,
+    redo,
+  };
 }

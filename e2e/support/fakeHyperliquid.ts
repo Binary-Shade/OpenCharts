@@ -102,6 +102,8 @@ export interface FakeOptions {
   balance?: number;
   /** When false the fake accepts builder fees that were never approved. Default true (HL enforces it). */
   enforceBuilderApproval?: boolean;
+  /** Optional fixed market-data clock for deterministic chart snapshots. */
+  marketNowMs?: number;
 }
 
 interface Position {
@@ -384,7 +386,8 @@ export class FakeHyperliquid {
     const unit: Record<string, number> = { "1m": 60e3, "3m": 180e3, "5m": 300e3, "15m": 900e3, "30m": 1800e3, "1h": 3600e3, "2h": 7200e3, "4h": 14_400e3, "8h": 28_800e3, "12h": 43_200e3, "1d": 86_400e3, "3d": 259_200e3, "1w": 604_800e3, "1M": 2_592_000e3 };
     const step = unit[interval] ?? 3600e3;
     const mid = this.midOf(coin) || 1;
-    const end = Math.min(endTime || Date.now(), Date.now());
+    const marketNow = this.opts.marketNowMs ?? Date.now();
+    const end = Math.min(endTime || marketNow, marketNow);
     const lastOpen = Math.floor(end / step) * step;
     const n = Math.min(300, Math.max(1, Math.floor((lastOpen - Math.max(startTime, lastOpen - 300 * step)) / step) + 1));
     const out: unknown[] = [];
@@ -796,4 +799,3 @@ export class FakeHyperliquid {
     }
   }
 }
-
