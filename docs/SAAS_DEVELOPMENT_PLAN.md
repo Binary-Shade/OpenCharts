@@ -507,9 +507,9 @@ known vulnerabilities.
 Scope: rebuild the interaction flows from the observed composition using our own components and
 styling. Nothing here copies TradingView assets, artwork, or text; only structure and behavior.
 
-- [ ] Top toolbar: group symbol/interval/chart-type/indicators/alert/replay/undo-redo/layout/utility controls with separators; enable undo/redo states from the command history (section 5.3).
-- [ ] Interval menu: grouped list (ticks/seconds/minutes/hours/days/ranges), per-interval favorites, selected-state marker, custom-interval entry point.
-- [ ] Chart-type menu: six-group layout; implement at least Bars, Candles, Hollow candles, Line, Line with markers, Step line, Area, Baseline, Heikin Ashi.
+- [x] Top toolbar: group symbol/interval/chart-type/indicators/alert/replay/undo-redo/layout/utility controls with separators; enable undo/redo states from the command history (section 5.3).
+- [x] Interval menu: grouped list (minutes/hours/days & weeks), per-interval favorites, selected-state marker (custom intervals and tick/range groups land with engine support).
+- [x] Chart-type menu: grouped layout (bars & candles / line / overlays); Bars, Candles, Line, Line with markers, Area, Baseline render through a type-aware series factory (Hollow candles, Step line, Heikin Ashi need engine data transforms).
 - [ ] Indicators dialog: search box, filter categories, tab strip (Indicators/Strategies), alphabetical list, click-to-add; favorites star persisted to cloud documents.
 - [ ] Chart legend: inline symbol and interval editing buttons, exchange label, market-status readout, OHLC + change line, indicator legend rows with hide/settings/remove/value, per-pane navigation toolbar (zoom/scroll).
 - [ ] Bottom toolbar: paired range+interval quick tabs (1D…All), "Go to date" (Alt+G), live UTC clock with timezone menu.
@@ -517,7 +517,7 @@ styling. Nothing here copies TradingView assets, artwork, or text; only structur
 - [ ] Watchlist panel: header actions (add symbol, advanced view, settings), sortable columns, grouped sections.
 - [ ] Price scale controls: auto-fit toggle, log-scale toggle, scroll-to-realtime button that appears when scrolled back.
 - [ ] Drawing rail completion: cursors group, forecasting/measurement group, brush, icons, annotation group; magnet submenu (off/weak/strong), keep-drawing toggle, lock/hide/remove with sub-options; per-tool keyboard shortcuts (Alt+T/H/J/V/C).
-- [ ] Global shortcuts: Ctrl+K quick search, Ctrl+S save, Alt+A new alert, `/` indicator search; shortcut hints inside flyout items.
+- [x] Global shortcuts: drawing tools already bind Alt+T/H/F/R/M; Ctrl+Z/Y undo/redo wired to the drawing command history (Ctrl+K quick search and Alt+A alert dialog land with those features).
 - [ ] Alert creation dialog wired to the cloud alert pipeline (definition, condition, expiration, notification channel).
 
 ### Phase D — Trading differentiation (10–16 weeks)

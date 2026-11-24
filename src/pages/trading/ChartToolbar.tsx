@@ -37,14 +37,19 @@ import {
   X,
 } from "lucide-react";
 import { useEffect, useRef, useState } from "react";
-import { INDICATOR_REGISTRY, type IndicatorType } from "../../packages/indicators/index.ts";
+import { Redo2, Undo2 } from "lucide-react";
+import type { ChartType } from "./chartTypes.ts";
+import { IntervalMenu } from "./toolbar/IntervalMenu.tsx";
+import { ChartTypeMenu } from "./toolbar/ChartTypeMenu.tsx";
+import { IndicatorsMenu } from "./toolbar/IndicatorsMenu.tsx";
+import { ToolbarDivider } from "./toolbar/primitives.tsx";
+import type { IndicatorType } from "../../packages/indicators/index.ts";
 import { cn, formatNumber } from "../../lib/utils.ts";
 import {
   type DrawingLine,
   type DrawingTool,
   type MagnetMode,
   REPLAY_ENABLED,
-  TIMEFRAMES,
   type Timeframe,
 } from "./constants.ts";
 import { ChartTemplatesMenu } from "./ChartTemplatesMenu.tsx";
@@ -53,6 +58,12 @@ import { ReplayHUD } from "./ReplayHUD.tsx";
 import { getPipDigits } from "./utils.ts";
 
 export interface ChartToolbarProps {
+  chartType: ChartType;
+  onChartTypeChange: (type: ChartType) => void;
+  onUndo?: () => void;
+  onRedo?: () => void;
+  canUndo?: boolean;
+  canRedo?: boolean;
   selectedSymbol: string;
   symbols: Array<{
     id?: string;
@@ -69,8 +80,6 @@ export interface ChartToolbarProps {
   onTimeframeChange: (tf: Timeframe) => void;
   activeIndicators: IndicatorType[];
   onToggleIndicator: (type: IndicatorType) => void;
-  showIndicatorMenu: boolean;
-  onToggleIndicatorMenu: () => void;
   drawingTool: DrawingTool;
   onDrawingTool: (t: DrawingTool) => void;
   drawings: DrawingLine[];
@@ -107,6 +116,12 @@ export interface ChartToolbarProps {
 }
 
 export function ChartToolbar({
+  chartType,
+  onChartTypeChange,
+  onUndo,
+  onRedo,
+  canUndo = false,
+  canRedo = false,
   selectedSymbol,
   symbols,
   onSymbolChange,
@@ -114,8 +129,6 @@ export function ChartToolbar({
   onTimeframeChange,
   activeIndicators,
   onToggleIndicator,
-  showIndicatorMenu,
-  onToggleIndicatorMenu,
   drawingTool,
   onDrawingTool,
   drawings,
@@ -154,7 +167,11 @@ export function ChartToolbar({
     : "--";
 
   return (
-    <div className="flex items-center gap-1 px-2 py-1 border-b border-border bg-card text-xs shrink-0 overflow-x-auto md:overflow-visible flex-nowrap md:flex-wrap no-scrollbar">
+    <div
+      role="toolbar"
+      aria-label="Chart toolbar"
+      className="flex items-center gap-1 px-2 py-1 border-b border-border bg-card text-xs shrink-0 overflow-x-auto md:overflow-visible flex-nowrap md:flex-wrap no-scrollbar"
+    >
       {/* Symbol Selector — TradingView style */}
       <div className="relative shrink-0">
         <button
@@ -268,7 +285,11 @@ export function ChartToolbar({
 
       {/* Live Price — bid / ask badges like TradingView */}
       {tick && (
-        <div className="flex items-center gap-1 md:gap-1.5 px-1.5 md:px-2 border-l border-r border-border shrink-0">
+        <div
+          role="group"
+          aria-label="Live quote"
+          className="flex items-center gap-1 md:gap-1.5 px-1.5 md:px-2 border-l border-r border-border shrink-0"
+        >
           <span className="inline-flex items-center gap-1 px-1 md:px-1.5 py-0.5 rounded bg-[#0ecb81]/15 text-[#0ecb81] font-mono font-bold text-[12px] md:text-[13px] tabular-nums tracking-tight">
             {formatNumber(
               tick.bid,
@@ -288,25 +309,11 @@ export function ChartToolbar({
         </div>
       )}
 
-      {/* Timeframe Selector — locked to 1m while a replay session is active */}
+      {/* Interval + chart type — TradingView grouped menus. Timeframe is
+          locked to 1m while a replay session is active. */}
       <div className="flex items-center gap-0.5 ml-1 shrink-0">
-        {TIMEFRAMES.map((tf) => (
-          <button
-            key={tf}
-            onClick={() => onTimeframeChange(tf)}
-            disabled={isReplaying}
-            title={isReplaying ? "Timeframe is fixed to 1m during replay" : undefined}
-            className={cn(
-              "px-2 py-1 rounded-md text-xs font-medium transition-all",
-              tf === timeframe
-                ? "bg-primary text-primary-foreground shadow-sm"
-                : "hover:bg-secondary/80 text-muted-foreground hover:text-foreground",
-              isReplaying && "opacity-40 cursor-default",
-            )}
-          >
-            {tf}
-          </button>
-        ))}
+        <IntervalMenu timeframe={timeframe} onTimeframeChange={onTimeframeChange} disabled={isReplaying} />
+        <ChartTypeMenu chartType={chartType} onChartTypeChange={onChartTypeChange} />
       </div>
 
       {/* Session replay controls — disabled until the feature is QA'd */}
@@ -324,48 +331,10 @@ export function ChartToolbar({
 
       <div className="h-4 border-l border-border mx-1 hidden md:block" />
 
-      {/* Indicators */}
+      {/* Indicators — searchable, grouped by overlay/pane */}
       {
-        <div className="relative hidden md:block">
-          <button
-            onClick={onToggleIndicatorMenu}
-            className={cn(
-              "flex items-center gap-1 px-2 py-1 rounded text-xs",
-              activeIndicators.length > 0
-                ? "bg-primary/20 text-primary"
-                : "hover:bg-secondary text-muted-foreground",
-            )}
-          >
-            <BarChart3 className="h-3 w-3" />
-            Indicators
-            {activeIndicators.length > 0 && (
-              <span className="bg-primary text-primary-foreground rounded-full px-1 text-[9px]">
-                {activeIndicators.length}
-              </span>
-            )}
-          </button>
-
-          {showIndicatorMenu && (
-            <div className="absolute top-full left-0 z-50 mt-1 w-64 bg-card border border-border rounded-lg shadow-xl p-2 space-y-0.5">
-              {INDICATOR_REGISTRY.map((ind) => (
-                <button
-                  key={ind.type}
-                  onClick={() => onToggleIndicator(ind.type)}
-                  className={cn(
-                    "w-full flex items-center gap-2 px-2 py-1.5 rounded text-sm hover:bg-secondary text-left",
-                    activeIndicators.includes(ind.type) && "bg-secondary",
-                  )}
-                >
-                  <span
-                    className="w-2 h-2 rounded-full shrink-0"
-                    style={{ backgroundColor: ind.color }}
-                  />
-                  <span className="flex-1">{ind.label}</span>
-                  <span className="text-[10px] text-muted-foreground">{ind.pane}</span>
-                </button>
-              ))}
-            </div>
-          )}
+        <div className="hidden md:block">
+          <IndicatorsMenu active={activeIndicators} onToggle={onToggleIndicator} />
         </div>
       }
 
@@ -390,8 +359,35 @@ export function ChartToolbar({
 
       <div className="flex-1 hidden md:block" />
 
-      {/* Right Panel Toggles */}
+      {/* Session history + right panel toggles */}
       <div className="hidden md:flex items-center gap-0.5">
+        <button
+          type="button"
+          aria-label="Undo"
+          title="Undo (drawings)"
+          disabled={!canUndo}
+          onClick={onUndo}
+          className={cn(
+            "px-1.5 py-1 rounded",
+            canUndo ? "hover:bg-secondary text-muted-foreground" : "text-muted-foreground/30 cursor-default",
+          )}
+        >
+          <Undo2 className="h-3.5 w-3.5" />
+        </button>
+        <button
+          type="button"
+          aria-label="Redo"
+          title="Redo (drawings)"
+          disabled={!canRedo}
+          onClick={onRedo}
+          className={cn(
+            "px-1.5 py-1 rounded",
+            canRedo ? "hover:bg-secondary text-muted-foreground" : "text-muted-foreground/30 cursor-default",
+          )}
+        >
+          <Redo2 className="h-3.5 w-3.5" />
+        </button>
+        <ToolbarDivider />
         <ToolButton
           icon={ArrowUpDown}
           tooltip="Order Panel"
@@ -414,7 +410,7 @@ export function ChartToolbar({
         {!isHyperliquidMode() && (
           <ToolButton
             icon={Newspaper}
-            tooltip="News"
+            tooltip="News panel"
             active={showRightPanel && rightPanel === "news"}
             onClick={() => onRightPanel("news")}
           />
@@ -428,6 +424,8 @@ export function ChartToolbar({
         <div className="h-4 border-l border-border mx-1" />
         <button
           onClick={onToggleRightPanel}
+          aria-label="Toggle side panel"
+          title="Toggle side panel"
           className="px-1.5 py-1 rounded hover:bg-secondary text-muted-foreground"
         >
           <Maximize2 className="h-3 w-3" />

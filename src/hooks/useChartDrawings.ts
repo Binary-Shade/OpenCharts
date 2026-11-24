@@ -35,6 +35,15 @@ export function useChartDrawings(symbol: string, timeframe: string) {
   const drawingsRef = useRef<DrawingLine[]>([]);
   const commandStoreRef = useRef(new DrawingCommandStore());
 
+  // Undo/redo availability, mirrored into state so toolbar buttons can disable.
+  const [history, setHistory] = useState({ undo: false, redo: false });
+  const syncHistory = useCallback(() => {
+    setHistory({
+      undo: commandStoreRef.current.canUndo,
+      redo: commandStoreRef.current.canRedo,
+    });
+  }, []);
+
   // Drawings load per symbol and are shared across timeframes (TradingView
   // behavior) — switching TF keeps them in place with no refetch.
   useEffect(() => {
@@ -49,13 +58,14 @@ export function useChartDrawings(symbol: string, timeframe: string) {
         const sorted = sortByZ(data ?? []);
         drawingsRef.current = sorted;
         commandStoreRef.current.reset(sorted);
+        syncHistory();
         setLoaded({ symbol, list: sorted });
       })
       .catch(() => {});
     return () => {
       cancelled = true;
     };
-  }, [symbol]);
+  }, [symbol, syncHistory]);
 
   // ── Primitive applies (state + ref mirror + server, no history) ──
 
@@ -78,9 +88,13 @@ export function useChartDrawings(symbol: string, timeframe: string) {
     api.chartDrawings.remove(id).catch(() => {});
   }, [setDrawings]);
 
-  const record = useCallback((command: DrawingCommand) => {
-    commandStoreRef.current.execute(command);
-  }, []);
+  const record = useCallback(
+    (command: DrawingCommand) => {
+      commandStoreRef.current.execute(command);
+      syncHistory();
+    },
+    [syncHistory],
+  );
 
   // ── Public mutators (record history) ──
 
@@ -111,6 +125,7 @@ export function useChartDrawings(symbol: string, timeframe: string) {
       });
       if (commands.length === 0) return;
       commandStoreRef.current.executeBatch(commands);
+      syncHistory();
       const updatesById = new Map(updates.map((drawing) => [drawing.id, drawing]));
       drawingsRef.current = sortByZ(
         drawingsRef.current.map((drawing) => updatesById.get(drawing.id) ?? drawing),
@@ -120,7 +135,7 @@ export function useChartDrawings(symbol: string, timeframe: string) {
         updates.map((drawing) => api.chartDrawings.save(symbol, timeframe, drawing)),
       ).catch(() => {});
     },
-    [setDrawings, symbol, timeframe],
+    [setDrawings, symbol, timeframe, syncHistory],
   );
 
   const removeDrawing = useCallback(
@@ -152,12 +167,14 @@ export function useChartDrawings(symbol: string, timeframe: string) {
   const undo = useCallback(() => {
     const next = commandStoreRef.current.undo();
     if (next) applyHistorySnapshot(next);
-  }, [applyHistorySnapshot]);
+    syncHistory();
+  }, [applyHistorySnapshot, syncHistory]);
 
   const redo = useCallback(() => {
     const next = commandStoreRef.current.redo();
     if (next) applyHistorySnapshot(next);
-  }, [applyHistorySnapshot]);
+    syncHistory();
+  }, [applyHistorySnapshot, syncHistory]);
 
   return {
     drawings,
@@ -168,5 +185,7 @@ export function useChartDrawings(symbol: string, timeframe: string) {
     clearDrawings,
     undo,
     redo,
+    canUndo: history.undo,
+    canRedo: history.redo,
   };
 }

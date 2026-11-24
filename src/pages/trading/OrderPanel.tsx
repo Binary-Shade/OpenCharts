@@ -365,6 +365,7 @@ function GenericOrderPanel({
             </label>
             <input
               type="number"
+              aria-label="Take profit price"
               value={takeProfit}
               onChange={(e) => setTakeProfit(e.target.value)}
               className="w-full mt-1 text-sm font-mono"
@@ -377,6 +378,7 @@ function GenericOrderPanel({
             </label>
             <input
               type="number"
+              aria-label="Stop loss price"
               value={stopLoss}
               onChange={(e) => setStopLoss(e.target.value)}
               className="w-full mt-1 text-sm font-mono"

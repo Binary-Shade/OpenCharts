@@ -65,6 +65,8 @@ export function TradingPage() {
     clearDrawings,
     undoDrawing,
     redoDrawing,
+    canUndoDrawings,
+    canRedoDrawings,
     activeAccountId,
     account,
     positions,
@@ -92,7 +94,6 @@ export function TradingPage() {
   } = useTerminal();
 
   // ── Layout state ──
-  const [showIndicatorMenu, setShowIndicatorMenu] = useState(false);
   const [bottomTab, setBottomTab] = useState<
     "positions" | "orders" | "history" | "journal" | "calendar" | "news"
   >("positions");
@@ -174,12 +175,16 @@ export function TradingPage() {
         selectedSymbol={selectedSymbol}
         symbols={symbols}
         onSymbolChange={setSelectedSymbol}
+        chartType={chartPrefs.chartType}
+        onChartTypeChange={(t) => updateChartPreferences({ chartType: t })}
+        onUndo={undoDrawing}
+        onRedo={redoDrawing}
+        canUndo={canUndoDrawings}
+        canRedo={canRedoDrawings}
         timeframe={timeframe}
         onTimeframeChange={handleTimeframeChange}
         activeIndicators={activeIndicators}
         onToggleIndicator={toggleIndicator}
-        showIndicatorMenu={showIndicatorMenu}
-        onToggleIndicatorMenu={() => setShowIndicatorMenu((v) => !v)}
         drawingTool={drawingTool}
         onDrawingTool={setDrawingTool}
         drawings={drawings}

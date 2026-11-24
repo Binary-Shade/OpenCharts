@@ -62,6 +62,7 @@ export function ReplayHUD({ accountId }: { accountId: string }) {
       {!isReplaying ? (
         <input
           type="date"
+          aria-label="Replay session date"
           value={sessionDate}
           onChange={(e) => handleDateChange(e.target.value)}
           max={toLocalDateString()}

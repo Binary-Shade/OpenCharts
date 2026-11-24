@@ -73,6 +73,8 @@ export interface TerminalContextValue {
   clearDrawings: () => void;
   undoDrawing: () => void;
   redoDrawing: () => void;
+  canUndoDrawings: boolean;
+  canRedoDrawings: boolean;
 
   // Account and trading
   activeAccountId: string | null;

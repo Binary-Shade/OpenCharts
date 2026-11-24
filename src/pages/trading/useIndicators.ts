@@ -1,5 +1,5 @@
 import { useEffect, useRef } from "react";
-import type { IChartApi, ISeriesApi, CandlestickData, Time } from "lightweight-charts";
+import type { IChartApi, ISeriesApi, CandlestickData, SeriesType, Time } from "lightweight-charts";
 import { LineStyle } from "lightweight-charts";
 import {
   INDICATOR_REGISTRY,
@@ -11,7 +11,7 @@ import { CHART_COLORS } from "./constants.ts";
 
 export function useIndicators(
   chartRef: React.RefObject<IChartApi | null>,
-  candleSeriesRef: React.RefObject<ISeriesApi<"Candlestick"> | null>,
+  candleSeriesRef: React.RefObject<ISeriesApi<SeriesType> | null>,
   chartData: CandlestickData<Time>[],
   activeIndicators: IndicatorType[],
   isDark: boolean,

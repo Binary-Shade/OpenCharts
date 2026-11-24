@@ -167,6 +167,8 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     clearDrawings,
     undo: undoDrawing,
     redo: redoDrawing,
+    canUndo: canUndoDrawings,
+    canRedo: canRedoDrawings,
   } = useChartDrawings(selectedSymbol, timeframe);
 
   // ── Trading preferences
@@ -463,6 +465,8 @@ export function TerminalProvider({ children }: { children: ReactNode }) {
     clearDrawings,
     undoDrawing,
     redoDrawing,
+    canUndoDrawings,
+    canRedoDrawings,
 
     activeAccountId,
     account,

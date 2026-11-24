@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import type { MagnetMode } from "../pages/trading/constants.ts";
+import { DEFAULT_CHART_TYPE, isChartType, type ChartType } from "../pages/trading/chartTypes.ts";
 import { useAuthStore } from "../services/store.tsx";
 import {
   readTraderPrefs as readScopedTraderPrefs,
@@ -18,6 +19,8 @@ export interface ChartPreferences {
   stayInDrawingMode: boolean;
   /** Plugin IDs that are currently active (persisted across page loads). */
   activePlugins: string[];
+  /** Main-series chart type (bars, candles, line family). */
+  chartType: ChartType;
   // ── Appearance (Chart Settings dialog) ──
   /** Hex override for up candles; empty string = theme default. */
   candleUpColor: string;
@@ -67,6 +70,7 @@ const DEFAULT_CHART_PREFS: ChartPreferences = {
   magnetMode: "none",
   stayInDrawingMode: false,
   activePlugins: [],
+  chartType: DEFAULT_CHART_TYPE,
   candleUpColor: "",
   candleDownColor: "",
   colorBackground: "",
@@ -133,6 +137,12 @@ const STRING_PREF_KEYS = [
   "colorSlLine",
   "activeChartTemplate",
 ] as const;
+
+/**
+ * Chart series type (bars / candles / line family). Stored raw and validated
+ * against the known set so an old or hand-edited value falls back to candles.
+ */
+const CHART_TYPE_KEY = "chartType";
 
 /**
  * Preference keys captured in a chart template snapshot — appearance, colors
@@ -215,6 +225,9 @@ export function getChartPreferencesFromStorage(): ChartPreferences {
   result.magnetMode =
     toMagnetMode(prefs.magnetMode) ?? (toBool(prefs.drawingMagnet, false) ? "weak" : "none");
   result.activePlugins = toStringArray(prefs.activePlugins, DEFAULT_CHART_PREFS.activePlugins);
+  result.chartType = isChartType(prefs[CHART_TYPE_KEY])
+    ? (prefs[CHART_TYPE_KEY] as ChartType)
+    : DEFAULT_CHART_TYPE;
   return result;
 }
 
