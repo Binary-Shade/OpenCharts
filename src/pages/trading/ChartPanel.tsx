@@ -981,7 +981,7 @@ function OhlcvCell({
           bold ? "font-semibold" : "font-medium",
         )}
       >
-        {value.toFixed(digits)}
+        {typeof value === "number" && Number.isFinite(value) ? value.toFixed(digits) : "—"}
       </span>
     </>
   );
@@ -998,8 +998,9 @@ function OhlcvLegendRow({ legend, pipDigits }: { legend: OhlcvLegend; pipDigits:
       <span
         className={cn("font-semibold", legend.change >= 0 ? "text-[#0ecb81]" : "text-[#f6465d]")}
       >
-        {legend.change >= 0 ? "+" : ""}
-        {legend.change.toFixed(2)}%
+        {typeof legend.change === "number" && Number.isFinite(legend.change)
+          ? `${legend.change >= 0 ? "+" : ""}${legend.change.toFixed(2)}%`
+          : "—"}
       </span>
       {legend.v > 0 && (
         <>
@@ -1676,7 +1677,10 @@ export function ChartPanel({
       }
       legendRestoredRef.current = false;
       const data = param.seriesData.get(candleSeries) as CandlestickData<Time> | undefined;
-      if (data) {
+      // Line-family chart types return {time, value} points without OHLC —
+      // building a legend from those would poison every cell with undefined.
+      // Skip the update so the legend keeps showing the latest candle.
+      if (data && typeof data.open === "number" && typeof data.close === "number") {
         const vol = param.seriesData.get(volumeSeries) as HistogramData<Time> | undefined;
         setLegend(candleToLegend(data, vol?.value || 0));
       }
