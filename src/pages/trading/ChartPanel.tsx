@@ -84,6 +84,7 @@ import {
   DrawingSettingsDialog,
 } from "./DrawingToolsOverlay.tsx";
 import { DrawingToolRail } from "./DrawingToolRail.tsx";
+import { BottomToolbar } from "./toolbar/BottomToolbar.tsx";
 import { DRAWING_STYLES_EVENT, getStyleDefaults } from "./drawingStyles.ts";
 import { NewsOverlay } from "./NewsOverlay.tsx";
 import { ObjectTreePanel } from "./ObjectTreePanel.tsx";
@@ -1445,6 +1446,12 @@ export function ChartPanel({
     () => activeIndicators.filter((t) => !hiddenIndicators.includes(t)),
     [activeIndicators, hiddenIndicators],
   );
+  // Bottom bar: active range tab + go-to-date popover. The pending range is
+  // applied from the data effect once the paired interval's history lands.
+  const [activeRangeTab, setActiveRangeTab] = useState<string | null>(null);
+  const [goToDateOpen, setGoToDateOpen] = useState(false);
+  const pendingRangeRef = useRef<{ bars: number | null } | null>(null);
+  const barsForNavRef = useRef<CandlestickData<Time>[]>([]);
   // Candle countdown state. `countdownText` blanks it for timeframes that have
   // no meaningful countdown (1d, 1w) instead of the timer effect clearing state.
   const [countdown, setCountdown] = useState("");
@@ -1701,6 +1708,48 @@ export function ChartPanel({
   const handleLegendScrollToRealTime = useCallback(() => {
     chartRef.current?.timeScale().scrollToRealTime();
   }, []);
+
+  const handleRangePick = useCallback(
+    (tab: { tab: string; tf: Timeframe; bars: number | null }) => {
+      pendingRangeRef.current = { bars: tab.bars };
+      setActiveRangeTab(tab.tab);
+      if (tab.tf !== timeframe && !isReplaying) onTimeframeChange?.(tab.tf);
+    },
+    [timeframe, isReplaying, onTimeframeChange],
+  );
+
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.altKey && (e.key === "g" || e.key === "G")) {
+        e.preventDefault();
+        setGoToDateOpen((v) => !v);
+      } else if (e.key === "Escape") {
+        setGoToDateOpen(false);
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, []);
+
+  const handleGoToDate = useCallback(
+    (date: string) => {
+      const ts = Math.floor(new Date(`${date}T00:00:00Z`).getTime() / 1000);
+      if (Number.isNaN(ts)) return;
+      const bars = barsForNavRef.current;
+      const idx = bars.findIndex((bar) => (bar.time as number) >= ts);
+      if (idx < 0) {
+        toast.info("No loaded data around that date", "Scroll back or pick a closer date.");
+        setGoToDateOpen(false);
+        return;
+      }
+      chartRef.current?.timeScale().setVisibleLogicalRange({
+        from: Math.max(0, idx - 10),
+        to: Math.min(bars.length + 5, idx + 20),
+      });
+      setGoToDateOpen(false);
+    },
+    [],
+  );
 
   const handleResetView = useCallback(() => {
     const chart = chartRef.current;
@@ -2157,6 +2206,19 @@ export function ChartPanel({
       chartData.map((bar) => mainSeriesAdapterRef.current(bar)) as CandlestickData<Time>[],
     );
     volumeSeriesRef.current?.setData(volumeData);
+    barsForNavRef.current = chartData;
+    const pending = pendingRangeRef.current;
+    if (pending) {
+      pendingRangeRef.current = null;
+      if (pending.bars == null) {
+        chartRef.current?.timeScale().fitContent();
+      } else {
+        chartRef.current?.timeScale().setVisibleLogicalRange({
+          from: Math.max(0, chartData.length - pending.bars),
+          to: chartData.length + 5,
+        });
+      }
+    }
     // These two refs are bookkeeping for the lightweight-charts instance — the
     // external system this effect synchronises — not render state. The React
     // Compiler rule cannot tell the difference, and restructuring the real-time
@@ -2306,8 +2368,9 @@ export function ChartPanel({
   ]);
 
   return (
-    <div className="relative w-full h-full">
-      {/* OHLCV Legend Overlay */}
+    <div className="relative flex flex-col w-full h-full">
+      <div className="relative flex-1 min-h-0">
+      
       <ChartLegendHeader
         selectedSymbol={selectedSymbol}
         timeframe={timeframe}
@@ -2467,6 +2530,17 @@ export function ChartPanel({
 
       {/* Left vertical tool rail (TradingView-style grouped flyouts) */}
       <DrawingToolRail drawingTool={drawingTool} onDrawingTool={(t) => onDrawingToolSelect?.(t)} />
+      </div>
+
+      {/* Bottom bar: range tabs, go-to-date, UTC clock */}
+      <BottomToolbar
+        timeframe={timeframe}
+        activeTab={activeRangeTab}
+        onRangePick={handleRangePick}
+        onGoToDate={handleGoToDate}
+        goToDateOpen={goToDateOpen}
+        onGoToDateToggle={() => setGoToDateOpen((v) => !v)}
+      />
     </div>
   );
 }

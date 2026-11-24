@@ -512,7 +512,7 @@ styling. Nothing here copies TradingView assets, artwork, or text; only structur
 - [x] Chart-type menu: grouped layout (bars & candles / line / overlays); Bars, Candles, Line, Line with markers, Area, Baseline render through a type-aware series factory (Hollow candles, Step line, Heikin Ashi need engine data transforms).
 - [ ] Indicators dialog: search box, filter categories, tab strip (Indicators/Strategies), alphabetical list, click-to-add; favorites star persisted to cloud documents.
 - [x] Chart legend: inline symbol and interval editing buttons, market-status readout, OHLC + change line, indicator legend rows with hide/remove, legend collapse, and a zoom/scroll navigation toolbar (per-indicator live values and settings dialogs land with the indicator-inputs task).
-- [ ] Bottom toolbar: paired range+interval quick tabs (1D…All), "Go to date" (Alt+G), live UTC clock with timezone menu.
+- [x] Bottom toolbar: paired range+interval quick tabs (1D…All, applied to the loaded window), "Go to date" (Alt+G, within loaded history with an explicit out-of-range notice), live UTC clock (timezone menu lands with reference-data settings).
 - [ ] Right rail: vertical tab strip with the panels we already have (watchlist, alerts, object tree, data window) plus placeholder tabs for screeners and the script editor; resizable panel body.
 - [ ] Watchlist panel: header actions (add symbol, advanced view, settings), sortable columns, grouped sections.
 - [ ] Price scale controls: auto-fit toggle, log-scale toggle, scroll-to-realtime button that appears when scrolled back.
