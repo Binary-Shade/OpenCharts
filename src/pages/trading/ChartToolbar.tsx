@@ -43,6 +43,8 @@ import { IntervalMenu } from "./toolbar/IntervalMenu.tsx";
 import { FavoriteIntervalRow } from "./toolbar/FavoriteIntervalRow.tsx";
 import { useIntervalFavorites } from "./toolbar/useIntervalFavorites.ts";
 import { ChartTypeMenu } from "./toolbar/ChartTypeMenu.tsx";
+import { FavoriteChartTypeRow } from "./toolbar/FavoriteChartTypeRow.tsx";
+import { useChartTypeFavorites } from "./toolbar/useChartTypeFavorites.ts";
 import { IndicatorsMenu } from "./toolbar/IndicatorsMenu.tsx";
 import { ToolbarDivider } from "./toolbar/primitives.tsx";
 import type { IndicatorType } from "../../packages/indicators/index.ts";
@@ -155,6 +157,10 @@ export function ChartToolbar({
   const [showSymbolSearch, setShowSymbolSearch] = useState(false);
   const [symbolFilter, setSymbolFilter] = useState("");
   const { favorites, toggleFavorite } = useIntervalFavorites();
+  const {
+    favorites: chartTypeFavorites,
+    toggleFavorite: toggleChartTypeFavorite,
+  } = useChartTypeFavorites();
 
   const filteredSymbols = symbols.filter(
     (s) =>
@@ -328,7 +334,17 @@ export function ChartToolbar({
           onToggleFavorite={toggleFavorite}
           disabled={isReplaying}
         />
-        <ChartTypeMenu chartType={chartType} onChartTypeChange={onChartTypeChange} />
+        <ChartTypeMenu
+          chartType={chartType}
+          onChartTypeChange={onChartTypeChange}
+          favorites={chartTypeFavorites}
+          onToggleFavorite={toggleChartTypeFavorite}
+        />
+        <FavoriteChartTypeRow
+          favorites={chartTypeFavorites}
+          chartType={chartType}
+          onChartTypeChange={onChartTypeChange}
+        />
       </div>
 
       {/* Session replay controls — disabled until the feature is QA'd */}

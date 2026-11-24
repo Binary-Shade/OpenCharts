@@ -5,13 +5,21 @@ import { MenuDivider, MenuRow, MenuSection, ToolbarMenu } from "./primitives.tsx
 interface ChartTypeMenuProps {
   chartType: ChartType;
   onChartTypeChange: (type: ChartType) => void;
+  /** Owned by the toolbar so the flat quick-pick row stays in sync. */
+  favorites: ChartType[];
+  onToggleFavorite: (type: ChartType) => void;
 }
 
 /**
  * Chart-style dropdown following TradingView's grouped layout — bars &
  * candles, line styles, overlays. Only types the engine renders are listed.
  */
-export function ChartTypeMenu({ chartType, onChartTypeChange }: ChartTypeMenuProps) {
+export function ChartTypeMenu({
+  chartType,
+  onChartTypeChange,
+  favorites,
+  onToggleFavorite,
+}: ChartTypeMenuProps) {
   const current = CHART_TYPE_GROUPS.flatMap((g) => g.items).find((i) => i.type === chartType);
 
   return (
@@ -32,10 +40,12 @@ export function ChartTypeMenu({ chartType, onChartTypeChange }: ChartTypeMenuPro
                   icon={item.icon}
                   label={item.label}
                   selected={item.type === chartType}
+                  starred={favorites.includes(item.type)}
                   onPick={() => {
                     onChartTypeChange(item.type);
                     close();
                   }}
+                  onToggleStar={() => onToggleFavorite(item.type)}
                 />
               ))}
             </div>
