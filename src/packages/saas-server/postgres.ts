@@ -67,6 +67,38 @@ export function createPostgresPool(config: PoolConfig): Pool {
   });
 }
 
+/**
+ * Runs a compare-and-swap write in its own tenant transaction. A revision
+ * conflict raise aborts that transaction, so the current resource is read in
+ * a fresh tenant transaction before the conflict is reported.
+ */
+export async function casTenantWrite<T>(args: {
+  pool: Pool;
+  principal: AuthenticatedPrincipal;
+  attempt: (client: PoolClient) => Promise<VersionedResource<T>>;
+  readCurrent: (client: PoolClient) => Promise<VersionedResource<T> | null>;
+  expectedRevision: number;
+}): Promise<RevisionWriteResult<T>> {
+  try {
+    const resource = await withTenantTransaction(args.pool, args.principal, args.attempt);
+    return { kind: "updated", resource };
+  } catch (error) {
+    if (!isPostgresError(error, "40001")) throw error;
+    const current = await withTenantTransaction(args.pool, args.principal, args.readCurrent);
+    if (!current) throw error;
+    return { kind: "revision-conflict", expectedRevision: args.expectedRevision, current };
+  }
+}
+
+export function isPostgresError(error: unknown, code: string): boolean {
+  return (
+    typeof error === "object" &&
+    error !== null &&
+    "code" in error &&
+    (error as { code?: unknown }).code === code
+  );
+}
+
 export function createPostgresChartDocumentRepository(pool: Pool): ChartDocumentRepository {
   const read = async (
     client: PoolClient,
@@ -88,9 +120,12 @@ export function createPostgresChartDocumentRepository(pool: Pool): ChartDocument
     get: (principal, workspaceId, symbolId) =>
       withTenantTransaction(pool, principal, (client) => read(client, workspaceId, symbolId)),
 
-    save: async (principal, workspaceId, symbolId, expectedRevision, document) => {
-      try {
-        return await withTenantTransaction(pool, principal, async (client) => {
+    save: (principal, workspaceId, symbolId, expectedRevision, document) =>
+      casTenantWrite({
+        pool,
+        principal,
+        expectedRevision,
+        attempt: async (client) => {
           const result = await client.query<{ revision: string; updated_at: Date }>(
             "select revision, updated_at from public.save_chart_document($1::uuid, $2, $3, $4::jsonb)",
             [workspaceId, symbolId, expectedRevision, JSON.stringify(document)],
@@ -98,33 +133,12 @@ export function createPostgresChartDocumentRepository(pool: Pool): ChartDocument
           const row = result.rows[0];
           if (!row) throw new Error("Chart document save returned no revision");
           return {
-            kind: "updated",
-            resource: {
-              revision: Number(row.revision),
-              updatedAt: row.updated_at.toISOString(),
-              value: document,
-            },
+            revision: Number(row.revision),
+            updatedAt: row.updated_at.toISOString(),
+            value: document,
           };
-        });
-      } catch (error) {
-        // The conflict raise aborts the failed transaction, so the current
-        // document must be read in a fresh tenant transaction.
-        if (!isPostgresError(error, "40001")) throw error;
-        const current = await withTenantTransaction(pool, principal, (client) =>
-          read(client, workspaceId, symbolId),
-        );
-        if (!current) throw error;
-        return { kind: "revision-conflict", expectedRevision, current };
-      }
-    },
+        },
+        readCurrent: (client) => read(client, workspaceId, symbolId),
+      }),
   };
-}
-
-function isPostgresError(error: unknown, code: string): boolean {
-  return (
-    typeof error === "object" &&
-    error !== null &&
-    "code" in error &&
-    (error as { code?: unknown }).code === code
-  );
 }
