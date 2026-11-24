@@ -92,7 +92,7 @@
     "test:watch": "vitest",
     "e2e:hl": "playwright test",
     "prepublishOnly": "npm run typecheck && npm run lint -- --max-warnings=0 && npm run test && npm run build:lib && npm run check:package",
-    "test:postgres": "vitest run src/__tests__/saas-postgres.test.ts"
+    "test:postgres": "vitest run --no-file-parallelism src/__tests__/saas-postgres.test.ts src/__tests__/saas-provisioning.test.ts"
   },
   "peerDependencies": {
     "react": ">=18.2.0",

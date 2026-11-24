@@ -36,7 +36,7 @@ function versioned(row: ChartDocumentRow): VersionedResource<DrawingDocument> {
   };
 }
 
-async function withTenantTransaction<T>(
+export async function withTenantTransaction<T>(
   pool: Pool,
   principal: AuthenticatedPrincipal,
   operation: (client: PoolClient) => Promise<T>,
