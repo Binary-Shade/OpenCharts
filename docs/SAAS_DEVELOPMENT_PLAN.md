@@ -420,6 +420,8 @@ known vulnerabilities.
 - [x] Add the initial tenant-safe Postgres schema for users, organizations, workspaces, chart documents, watchlists, subscriptions, and audit events.
 - [x] Add optimistic revision contracts and a compare-and-swap chart-document write path.
 - [x] Add provider-neutral subscription entitlements and plan limits.
+- [x] Add a bearer-authenticated chart-document API, a tenant-scoped Postgres repository, and an HTTP client that preserves revision conflicts.
+- [x] Verify migrations, row-level security, and conflict recovery in CI against a disposable postgres:16 service.
 - [ ] Connect authenticated API routes to the Postgres schema and provision users/organizations.
 - [ ] Move drawings, layouts, watchlists, journals, and templates from local storage to revisioned cloud persistence.
 - Add basic subscription billing.

@@ -67,6 +67,10 @@
       "types": "./dist-lib/saas-core.d.ts",
       "import": "./dist-lib/saas-core.js"
     },
+    "./saas-server": {
+      "types": "./dist-lib/saas-server.d.ts",
+      "import": "./dist-lib/saas-server.js"
+    },
     "./style.css": "./dist-lib/style.css",
     "./package.json": "./package.json"
   },
@@ -87,7 +91,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "e2e:hl": "playwright test",
-    "prepublishOnly": "npm run typecheck && npm run lint -- --max-warnings=0 && npm run test && npm run build:lib && npm run check:package"
+    "prepublishOnly": "npm run typecheck && npm run lint -- --max-warnings=0 && npm run test && npm run build:lib && npm run check:package",
+    "test:postgres": "vitest run src/__tests__/saas-postgres.test.ts"
   },
   "peerDependencies": {
     "react": ">=18.2.0",
@@ -109,6 +114,7 @@
     "fancy-canvas": "^2.1.0",
     "lightweight-charts": "^4.2.0",
     "lucide-react": "^0.575.0",
+    "pg": "^8.23.1",
     "tailwind-merge": "^3.5.0",
     "viem": "^2.57.17",
     "zod": "^4.6.7",
@@ -121,6 +127,7 @@
     "@testing-library/react": "^16.3.2",
     "@testing-library/user-event": "^14.6.1",
     "@types/lz4js": "^0.2.2",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.0.0",
     "@types/react-dom": "^19.0.0",
     "@vitejs/plugin-react": "^4.3.0",

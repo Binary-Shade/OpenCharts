@@ -67,3 +67,40 @@ jobs:
 
       - name: Check package shape
         run: npm run check:package
+
+  database:
+    name: Postgres migrations and repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: postgres
+          POSTGRES_DB: opencharts_test
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      # The suite applies db/migrations itself against a disposable schema, so
+      # this also proves the SQL files stay runnable in lexical order.
+      - name: Test tenant-safe Postgres layer
+        env:
+          OPENCHARTS_TEST_DATABASE_URL: postgres://postgres:postgres@127.0.0.1:5432/opencharts_test
+        run: npm run test:postgres

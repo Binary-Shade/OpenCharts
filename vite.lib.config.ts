@@ -66,6 +66,7 @@ export default defineConfig({
         indicators: path.resolve(__dirname, "src/indicators.ts"),
         "market-schema": path.resolve(__dirname, "src/market-schema.ts"),
         "saas-core": path.resolve(__dirname, "src/saas-core.ts"),
+        "saas-server": path.resolve(__dirname, "src/saas-server.ts"),
       },
       formats: ["es"],
     },

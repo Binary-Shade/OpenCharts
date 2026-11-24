@@ -32,13 +32,26 @@ class MemoryStorage implements Storage {
 }
 
 for (const name of ["localStorage", "sessionStorage"] as const) {
-  Object.defineProperty(window, name, {
+  Object.defineProperty(globalThis, name, {
     value: new MemoryStorage(),
     configurable: true,
     writable: true,
   });
 }
 
+if (typeof window !== "undefined") {
+  for (const name of ["localStorage", "sessionStorage"] as const) {
+    Object.defineProperty(window, name, {
+      value: globalThis[name as "localStorage"],
+      configurable: true,
+      writable: true,
+    });
+  }
+}
+
 // The data layer resolves against whichever adapter is installed, so tests get
-// the same bundled demo backend the app ships with.
-setAdapter(createDemoAdapter());
+// the same bundled demo backend the app ships with. Node-environment suites
+// (database integration) never touch the adapter and skip this entirely.
+if (typeof document !== "undefined") {
+  setAdapter(createDemoAdapter());
+}
